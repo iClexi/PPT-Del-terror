@@ -45,6 +45,7 @@ app.disable('x-powered-by');
 
 app.use(
   helmet({
+    xFrameOptions: { action: 'deny' },
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
