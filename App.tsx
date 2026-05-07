@@ -1,27 +1,70 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Login } from './components/Login';
 import { Game } from './components/Game';
 import { Button } from './components/Button';
+import { Dashboard } from './components/Dashboard';
 import { ScreenState } from './types';
 
 function App() {
   const [screen, setScreen] = useState<ScreenState>(ScreenState.LOGIN);
   const [finalScore, setFinalScore] = useState(0);
+  const [playerName, setPlayerName] = useState('');
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
 
-  const handleLoginSuccess = () => {
-    setScreen(ScreenState.PLAYING);
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const response = await fetch('/api/session', { credentials: 'same-origin' });
+        const payload = await response.json();
+        if (response.ok && payload.authenticated && payload.playerName) {
+          setPlayerName(payload.playerName);
+          setScreen(ScreenState.DASHBOARD);
+        }
+      } catch {
+        setScreen(ScreenState.LOGIN);
+      } finally {
+        setIsCheckingSession(false);
+      }
+    };
+
+    void checkSession();
+  }, []);
+
+  const handleLoginSuccess = (name: string) => {
+    setPlayerName(name);
+    setScreen(ScreenState.DASHBOARD);
   };
 
-  const handleGameOver = (won: boolean, score: number) => {
+  const handleGameOver = async (won: boolean, score: number) => {
     setFinalScore(score);
     setScreen(won ? ScreenState.VICTORY : ScreenState.GAME_OVER);
+
+    try {
+      await fetch('/api/scores', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ score, won }),
+      });
+    } catch {
+      // The game result still renders even if the network is unavailable.
+    }
   };
 
   const resetGame = () => {
     setScreen(ScreenState.PLAYING);
   };
 
-  const logout = () => {
+  const showDashboard = () => {
+    setScreen(ScreenState.DASHBOARD);
+  };
+
+  const logout = async () => {
+    await fetch('/api/logout', {
+      method: 'POST',
+      credentials: 'same-origin',
+    }).catch(() => undefined);
+    setPlayerName('');
     setScreen(ScreenState.LOGIN);
   };
 
@@ -37,33 +80,48 @@ function App() {
 
   return (
     <div className="min-h-screen bg-retro-bg flex flex-col">
-      {/* Header / Navbar */}
       <nav className="p-4 bg-slate-900 border-b border-slate-700 flex justify-between items-center z-50">
         <div className="font-arcade text-retro-accent text-lg flex items-center gap-2">
           <span>💀</span> PPT ATTACK
         </div>
-        {screen !== ScreenState.LOGIN && (
-          <button 
-            onClick={logout} 
-            className="text-xs text-gray-400 hover:text-white underline font-sans"
-          >
-            Cerrar Sesión
-          </button>
+        {screen !== ScreenState.LOGIN && !isCheckingSession && (
+          <div className="flex items-center gap-4">
+            {screen !== ScreenState.DASHBOARD && (
+              <button
+                onClick={showDashboard}
+                className="text-xs text-gray-400 hover:text-white underline font-sans"
+              >
+                Dashboard
+              </button>
+            )}
+            <button 
+              onClick={logout} 
+              className="text-xs text-gray-400 hover:text-white underline font-sans"
+            >
+              Cerrar sesión
+            </button>
+          </div>
         )}
       </nav>
 
-      {/* Main Content Area */}
       <main className="flex-grow relative overflow-hidden flex items-center justify-center">
+        {isCheckingSession && (
+          <div className="font-arcade text-retro-accent animate-pulse">Cargando...</div>
+        )}
         
-        {screen === ScreenState.LOGIN && (
+        {!isCheckingSession && screen === ScreenState.LOGIN && (
           <Login onLoginSuccess={handleLoginSuccess} />
         )}
 
-        {screen === ScreenState.PLAYING && (
+        {!isCheckingSession && screen === ScreenState.DASHBOARD && (
+          <Dashboard playerName={playerName} onPlay={resetGame} />
+        )}
+
+        {!isCheckingSession && screen === ScreenState.PLAYING && (
           <Game onGameOver={handleGameOver} />
         )}
 
-        {screen === ScreenState.GAME_OVER && (
+        {!isCheckingSession && screen === ScreenState.GAME_OVER && (
           <div className="text-center p-8 bg-slate-800 border-4 border-red-600 rounded-lg shadow-2xl max-w-lg mx-4 z-50 animate-bounce">
             <h1 className="text-4xl font-arcade text-red-500 mb-4">¡REPROBADO!</h1>
             <p className="font-sans text-gray-300 mb-6 text-xl">
@@ -72,11 +130,12 @@ function App() {
             <div className="font-arcade text-yellow-400 mb-8">Puntaje Final: {finalScore}</div>
             <div className="flex gap-4 justify-center">
               <Button onClick={resetGame} variant="primary">Intentar de nuevo</Button>
+              <Button onClick={showDashboard} variant="danger">Dashboard</Button>
             </div>
           </div>
         )}
 
-        {screen === ScreenState.VICTORY && (
+        {!isCheckingSession && screen === ScreenState.VICTORY && (
           <div className="text-center p-8 bg-slate-800 border-4 border-green-500 rounded-lg shadow-2xl max-w-lg mx-4 z-50">
             <h1 className="text-3xl font-arcade text-green-400 mb-4">¡PPT SUBIDO!</h1>
             <p className="font-sans text-gray-300 mb-6 text-xl">
@@ -85,6 +144,7 @@ function App() {
             <div className="font-arcade text-yellow-400 mb-8">Puntaje Final: {finalScore}</div>
             <div className="flex gap-4 justify-center">
               <Button onClick={resetGame} variant="success">Jugar otra vez</Button>
+              <Button onClick={showDashboard} variant="primary">Dashboard</Button>
             </div>
           </div>
         )}

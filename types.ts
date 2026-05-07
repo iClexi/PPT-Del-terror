@@ -1,5 +1,6 @@
 export enum ScreenState {
   LOGIN = 'LOGIN',
+  DASHBOARD = 'DASHBOARD',
   PLAYING = 'PLAYING',
   GAME_OVER = 'GAME_OVER',
   VICTORY = 'VICTORY'
@@ -23,4 +24,17 @@ export interface Entity {
 
 export interface Credentials {
   [username: string]: string;
+}
+
+export interface LeaderboardEntry {
+  playerName: string;
+  bestScore: number;
+  games: number;
+  wins: number;
+  lastPlayedAt: string;
+}
+
+export interface LeaderboardResponse {
+  topWeek: LeaderboardEntry[];
+  topAllTime: LeaderboardEntry[];
 }

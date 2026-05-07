@@ -1,20 +1,53 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# PPT del Terror
 
-# Run and deploy your AI Studio app
+Juego web de "PPT del Terror" con login real, sesiones seguras y dashboard de rankings semanal/global sobre PostgreSQL.
 
-This contains everything you need to run your app locally.
+## Stack
 
-View your app in AI Studio: https://ai.studio/apps/drive/1CFdKHSS7cW2XJAiTtySt8IM6OphmIXzc
+- Vite
+- React
+- TypeScript
+- Tailwind CSS
+- Express
+- PostgreSQL
 
-## Run Locally
+## Desarrollo
 
-**Prerequisites:**  Node.js
+```bash
+npm install
+npm run dev
+```
 
+## Backend
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+El backend sirve `dist/` y expone:
+
+- `POST /api/login`
+- `POST /api/logout`
+- `GET /api/session`
+- `POST /api/scores`
+- `GET /api/leaderboard`
+- `GET /healthz`
+
+## Variables de entorno
+
+Copiar `.env.example` y configurar valores reales fuera del repositorio:
+
+```bash
+cp .env.example .env
+```
+
+`LOGIN_PASSWORD_HASH` debe ser un hash bcrypt. Ejemplo:
+
+```bash
+LOGIN_PASSWORD='tu-password' node --input-type=module -e "import bcrypt from 'bcryptjs'; console.log(await bcrypt.hash(process.env.LOGIN_PASSWORD, 12));"
+```
+
+## Produccion
+
+```bash
+npm run build
+npm run start
+```
+
+Por defecto escucha en el puerto `1311`.
