@@ -1,15 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { BookOpenCheck, LayoutDashboard, LogOut, RotateCcw, Trophy } from 'lucide-react';
+import { LayoutDashboard, LogOut, RotateCcw, ShieldCheck, Trophy } from 'lucide-react';
 import { Login } from './components/Login';
 import { Game } from './components/Game';
 import { Button } from './components/Button';
 import { Dashboard } from './components/Dashboard';
+import { AdminPanel } from './components/AdminPanel';
 import { ScreenState } from './types';
 
 function App() {
   const [screen, setScreen] = useState<ScreenState>(ScreenState.LOGIN);
   const [finalScore, setFinalScore] = useState(0);
   const [playerName, setPlayerName] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [personalBest, setPersonalBest] = useState(0);
+  const [newRecordScore, setNewRecordScore] = useState<number | null>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
 
   useEffect(() => {
@@ -19,6 +23,7 @@ function App() {
         const payload = await response.json();
         if (response.ok && payload.authenticated && payload.playerName) {
           setPlayerName(payload.playerName);
+          setIsAdmin(Boolean(payload.isAdmin));
           setScreen(ScreenState.DASHBOARD);
         }
       } catch {
@@ -31,25 +36,34 @@ function App() {
     void checkSession();
   }, []);
 
-  const handleLoginSuccess = (name: string) => {
+  const handleLoginSuccess = (name: string, admin: boolean) => {
     setPlayerName(name);
+    setIsAdmin(admin);
     setScreen(ScreenState.DASHBOARD);
   };
 
   const handleGameOver = async (won: boolean, score: number) => {
     setFinalScore(score);
-    setScreen(won ? ScreenState.VICTORY : ScreenState.GAME_OVER);
 
     try {
-      await fetch('/api/scores', {
+      const response = await fetch('/api/scores', {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ score, won }),
       });
+      const payload = await response.json().catch(() => ({}));
+      if (response.ok && payload.isPersonalBest && score > personalBest) {
+        setNewRecordScore(score);
+      }
+      if (response.ok && Number.isFinite(Number(payload.bestScore))) {
+        setPersonalBest(Number(payload.bestScore));
+      }
     } catch {
       // The game result still renders even if the network is unavailable.
     }
+
+    setScreen(won ? ScreenState.VICTORY : ScreenState.GAME_OVER);
   };
 
   const resetGame = () => {
@@ -60,12 +74,18 @@ function App() {
     setScreen(ScreenState.DASHBOARD);
   };
 
+  const showAdmin = () => {
+    setScreen(ScreenState.ADMIN);
+  };
+
   const logout = async () => {
     await fetch('/api/logout', {
       method: 'POST',
       credentials: 'same-origin',
     }).catch(() => undefined);
     setPlayerName('');
+    setIsAdmin(false);
+    setPersonalBest(0);
     setScreen(ScreenState.LOGIN);
   };
 
@@ -75,19 +95,18 @@ function App() {
     if (score === 0) return "Le cayó agua al botón de Enter justo al iniciar.";
     if (score < 300) return "Una banda de atracadores entró y se robó SOLAMENTE el cargador de tu laptop.";
     if (score < 600) return "Tu padrastro estaba en la selva de Colombia y te estresaste demasiado.";
-    if (score < 900) return "Quisiste ser un héroe de la fe, terminaste en 0 pero lo intentaste.";
-    return "El sistema colapsó porque todos subieron la tarea al mismo tiempo.";
+    if (score < 1200) return "Quisiste ser un héroe de la fe, pero el PPT todavía no llegó.";
+    return "Duraste bastante. El sistema colapsó porque todos subieron la tarea al mismo tiempo.";
   };
 
   return (
     <div className="min-h-screen bg-retro-bg flex flex-col">
-      <nav className="p-4 bg-slate-900 border-b border-slate-700 flex justify-between items-center z-50">
-        <div className="font-arcade text-retro-accent text-lg flex items-center gap-2">
-          <BookOpenCheck size={24} />
+      <nav className="px-3 py-3 sm:p-4 bg-slate-900 border-b border-slate-700 flex justify-between items-center z-50 gap-3">
+        <div className="font-arcade text-retro-accent text-base sm:text-lg flex items-center gap-2">
           <span>PPT ATTACK</span>
         </div>
         {screen !== ScreenState.LOGIN && !isCheckingSession && (
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap justify-end items-center gap-3">
             {screen !== ScreenState.DASHBOARD && (
               <button
                 onClick={showDashboard}
@@ -95,6 +114,15 @@ function App() {
               >
                 <LayoutDashboard size={14} />
                 Dashboard
+              </button>
+            )}
+            {isAdmin && screen !== ScreenState.ADMIN && (
+              <button
+                onClick={showAdmin}
+                className="text-xs text-purple-300 hover:text-white font-sans inline-flex items-center gap-1"
+              >
+                <ShieldCheck size={14} />
+                Admin
               </button>
             )}
             <button 
@@ -108,7 +136,7 @@ function App() {
         )}
       </nav>
 
-      <main className="flex-grow relative overflow-hidden flex items-center justify-center">
+      <main className="flex-grow relative overflow-hidden flex items-center justify-center min-h-0">
         {isCheckingSession && (
           <div className="font-arcade text-retro-accent animate-pulse">Cargando...</div>
         )}
@@ -118,7 +146,11 @@ function App() {
         )}
 
         {!isCheckingSession && screen === ScreenState.DASHBOARD && (
-          <Dashboard playerName={playerName} onPlay={resetGame} />
+          <Dashboard playerName={playerName} isAdmin={isAdmin} onPlay={resetGame} onAdmin={showAdmin} />
+        )}
+
+        {!isCheckingSession && screen === ScreenState.ADMIN && isAdmin && (
+          <AdminPanel onPlay={resetGame} onDashboard={showDashboard} />
         )}
 
         {!isCheckingSession && screen === ScreenState.PLAYING && (
@@ -126,13 +158,13 @@ function App() {
         )}
 
         {!isCheckingSession && screen === ScreenState.GAME_OVER && (
-          <div className="text-center p-8 bg-slate-800 border-4 border-red-600 rounded-lg shadow-2xl max-w-lg mx-4 z-50 animate-bounce">
-            <h1 className="text-4xl font-arcade text-red-500 mb-4">¡REPROBADO!</h1>
-            <p className="font-sans text-gray-300 mb-6 text-xl">
+          <div className="text-center p-5 sm:p-8 bg-slate-800 border-4 border-red-600 rounded-lg shadow-2xl w-[calc(100vw-1.5rem)] max-w-lg mx-3 z-50">
+            <h1 className="text-3xl sm:text-4xl font-arcade text-red-500 mb-4 leading-relaxed">¡REPROBADO!</h1>
+            <p className="font-sans text-gray-300 mb-6 text-base sm:text-xl">
               {getFeedbackMessage(finalScore, false)}
             </p>
             <div className="font-arcade text-yellow-400 mb-8">Puntaje Final: {finalScore}</div>
-            <div className="flex gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button onClick={resetGame} variant="primary">
                 <span className="inline-flex items-center gap-2">
                   <RotateCcw size={18} />
@@ -173,6 +205,19 @@ function App() {
           </div>
         )}
       </main>
+
+      {newRecordScore !== null && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-md rounded-xl border-4 border-yellow-400 bg-slate-950 p-6 text-center shadow-2xl">
+            <Trophy className="mx-auto mb-4 text-yellow-400" size={42} />
+            <h2 className="font-arcade text-2xl text-yellow-300 leading-relaxed">Nuevo récord</h2>
+            <p className="mt-4 text-slate-300">Superaste tu mejor marca con {newRecordScore} puntos.</p>
+            <Button className="mt-6 w-full" onClick={() => setNewRecordScore(null)} variant="success">
+              Entendido
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

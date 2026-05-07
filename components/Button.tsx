@@ -5,7 +5,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export const Button: React.FC<ButtonProps> = ({ children, variant = 'primary', className = '', ...props }) => {
-  const baseStyle = "font-arcade text-sm py-3 px-6 rounded shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-1 transition-all border-2";
+  const baseStyle = "max-w-full font-arcade text-xs sm:text-sm py-3 px-4 sm:px-6 rounded shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-1 transition-all border-2";
   
   let variantStyle = "";
   switch (variant) {

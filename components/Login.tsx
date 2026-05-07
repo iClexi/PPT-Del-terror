@@ -3,7 +3,7 @@ import { KeyRound, LogIn, ShieldCheck, UserPlus, UserRound } from 'lucide-react'
 import { Button } from './Button';
 
 interface LoginProps {
-  onLoginSuccess: (playerName: string) => void;
+  onLoginSuccess: (playerName: string, isAdmin: boolean) => void;
 }
 
 type AuthMode = 'login' | 'register';
@@ -45,7 +45,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         return;
       }
 
-      onLoginSuccess(payload.playerName);
+      onLoginSuccess(payload.playerName, Boolean(payload.isAdmin));
     } catch {
       setError('No se pudo conectar con el servidor.');
     } finally {
@@ -54,39 +54,39 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="flex h-full w-full max-w-5xl mx-auto items-center justify-center p-4">
-      <div className="bg-gray-900 p-8 rounded-xl border-4 border-retro-accent shadow-2xl w-full max-w-md relative overflow-hidden">
+    <div className="login-shell">
+      <div className="login-card bg-gray-900 p-4 sm:p-8 rounded-xl border-4 border-retro-accent shadow-2xl min-w-0 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
         <div className="flex justify-center mb-5">
           <div className="h-14 w-14 rounded-lg border-2 border-retro-accent bg-slate-950 flex items-center justify-center text-retro-accent">
             <ShieldCheck size={30} />
           </div>
         </div>
-        <h1 className="text-2xl font-arcade text-center mb-4 text-white leading-relaxed">PPT del Terror</h1>
-        <div className="grid grid-cols-2 gap-2 mb-8 rounded-lg border-2 border-slate-700 bg-slate-950 p-1">
+        <h1 className="text-lg sm:text-2xl font-arcade text-center mb-4 text-white leading-relaxed">PPT del Terror</h1>
+        <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2 mb-6 sm:mb-8 rounded-lg border-2 border-slate-700 bg-slate-950 p-1">
           <button
             type="button"
             onClick={() => handleModeChange('login')}
-            className={`flex items-center justify-center gap-2 rounded-md px-3 py-3 text-xs font-arcade transition ${
+            className={`min-w-0 flex items-center justify-center gap-1.5 rounded-md px-2 sm:px-3 py-2.5 sm:py-3 text-[10px] sm:text-xs font-arcade transition ${
               mode === 'login' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
             }`}
           >
             <LogIn size={16} />
-            Login
+            <span className="truncate">Login</span>
           </button>
           <button
             type="button"
             onClick={() => handleModeChange('register')}
-            className={`flex items-center justify-center gap-2 rounded-md px-3 py-3 text-xs font-arcade transition ${
+            className={`min-w-0 flex items-center justify-center gap-1.5 rounded-md px-2 sm:px-3 py-2.5 sm:py-3 text-[10px] sm:text-xs font-arcade transition ${
               mode === 'register' ? 'bg-green-600 text-white' : 'text-gray-400 hover:text-white'
             }`}
           >
             <UserPlus size={16} />
-            Registro
+            <span className="truncate">Registro</span>
           </button>
         </div>
         
-        <form onSubmit={handleAuth} className="flex flex-col gap-6">
+        <form onSubmit={handleAuth} className="flex flex-col gap-4 sm:gap-6">
           <div className="space-y-2">
             <label className="text-xs font-arcade text-blue-300 flex items-center gap-2" htmlFor="player-name">
               <UserRound size={15} />
@@ -123,11 +123,6 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
               maxLength={128}
               required
             />
-            {isRegister && (
-              <p className="text-[11px] leading-relaxed text-gray-400">
-                La contraseña se guarda con bcrypt y se usa para entrar desde cualquier lugar.
-              </p>
-            )}
           </div>
 
           {error && (
@@ -136,10 +131,10 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             </div>
           )}
 
-          <Button type="submit" className="w-full mt-4 disabled:opacity-60" disabled={isSubmitting}>
-            <span className="inline-flex items-center justify-center gap-2">
+          <Button type="submit" className="w-full mt-4 disabled:opacity-60 px-3 text-[11px] sm:text-sm" disabled={isSubmitting}>
+            <span className="inline-flex min-w-0 items-center justify-center gap-2">
               {isRegister ? <UserPlus size={18} /> : <LogIn size={18} />}
-              {isSubmitting ? 'Procesando...' : isRegister ? 'Crear cuenta' : 'Iniciar sesión'}
+              <span className="truncate">{isSubmitting ? 'Procesando...' : isRegister ? 'Crear cuenta' : 'Iniciar sesión'}</span>
             </span>
           </Button>
         </form>

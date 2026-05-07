@@ -1,53 +1,29 @@
 # PPT del Terror
 
-Juego web de "PPT del Terror" con login real, sesiones seguras y dashboard de rankings semanal/global sobre PostgreSQL.
+PPT del Terror es un juego web tipo endless runner inspirado en la presión de subir una presentación antes de tiempo. El jugador inicia sesión, juega desde teclado o móvil, acumula puntuación y compite en rankings semanales y globales.
+
+## Qué Ofrece
+
+- Login y registro con sesiones seguras.
+- Juego infinito con dificultad progresiva.
+- Controles con flechas, WASD y arrastre táctil en móvil.
+- Ranking semanal y ranking histórico sobre PostgreSQL.
+- Popup de nuevo récord personal.
+- Dashboard responsive para ver puntuaciones sin scroll horizontal innecesario.
+- Panel admin para iClexi con tráfico técnico, usuarios, navegador y eventos de control del juego.
+- Rate limiting en login y registro.
 
 ## Stack
 
-- Vite
 - React
+- Vite
 - TypeScript
 - Tailwind CSS
 - Express
 - PostgreSQL
+- Helmet
+- bcrypt
 
-## Desarrollo
+## Seguridad y Transparencia
 
-```bash
-npm install
-npm run dev
-```
-
-## Backend
-
-El backend sirve `dist/` y expone:
-
-- `POST /api/login`
-- `POST /api/logout`
-- `GET /api/session`
-- `POST /api/scores`
-- `GET /api/leaderboard`
-- `GET /healthz`
-
-## Variables de entorno
-
-Copiar `.env.example` y configurar valores reales fuera del repositorio:
-
-```bash
-cp .env.example .env
-```
-
-`LOGIN_PASSWORD_HASH` debe ser un hash bcrypt. Ejemplo:
-
-```bash
-LOGIN_PASSWORD='tu-password' node --input-type=module -e "import bcrypt from 'bcryptjs'; console.log(await bcrypt.hash(process.env.LOGIN_PASSWORD, 12));"
-```
-
-## Produccion
-
-```bash
-npm run build
-npm run start
-```
-
-Por defecto escucha en el puerto `1311`.
+El repositorio publica el código fuente de la página, no secretos. Los archivos `.env` reales están ignorados por Git y las variables sensibles deben vivir en el servidor, fuera del commit.

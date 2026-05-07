@@ -20,6 +20,12 @@ for (const key of requiredEnv) {
 
 const port = Number.parseInt(process.env.PORT ?? '1311', 10);
 const sessionMaxAgeMs = 7 * 24 * 60 * 60 * 1000;
+const adminPlayerNames = new Set(
+  (process.env.ADMIN_PLAYER_NAMES ?? 'iClexi')
+    .split(',')
+    .map((name) => name.trim().toLowerCase())
+    .filter(Boolean),
+);
 const allowedHosts = new Set(
   (process.env.ALLOWED_HOSTS ?? 'terror.iclexi.tech,localhost,127.0.0.1,192.168.200.21,192.168.200.22,192.168.200.30')
     .split(',')
@@ -117,11 +123,12 @@ const parseCookies = (header = '') =>
 
 const dummyPasswordHash = '$2a$12$CwhDRHGO7lAupjd3EtwtxePFqgFKb5EKnBPBmhLXeRry0KyUilgnq';
 
-const createSessionToken = ({ playerId, playerName }) => {
+const createSessionToken = ({ playerId, playerName, isAdmin = false }) => {
   const payload = base64UrlEncode(
     JSON.stringify({
       playerId,
       playerName,
+      isAdmin: Boolean(isAdmin),
       exp: Date.now() + sessionMaxAgeMs,
     }),
   );
@@ -203,6 +210,13 @@ const requireSession = (req, res, next) => {
   return next();
 };
 
+const requireAdmin = (req, res, next) => {
+  requireSession(req, res, () => {
+    if (!req.session?.isAdmin) return res.status(403).json({ error: 'Panel de admin requerido.' });
+    return next();
+  });
+};
+
 const setSessionCookie = (res, token) => {
   const secure = process.env.COOKIE_SECURE !== 'false';
   res.cookie('ppt_terror_session', token, {
@@ -234,11 +248,104 @@ const mapLeaderboardRows = (rows) =>
 
 const findPlayerByName = async (playerName) => {
   const result = await pool.query(
-    'SELECT id, player_name, password_hash FROM ppt_players WHERE LOWER(player_name) = LOWER($1) LIMIT 1',
+    'SELECT id, player_name, password_hash, is_admin FROM ppt_players WHERE LOWER(player_name) = LOWER($1) LIMIT 1',
     [playerName],
   );
   return result.rows[0] ?? null;
 };
+
+const safeText = (value, maxLength = 300) => {
+  if (value === undefined || value === null) return null;
+  const text = String(value).replace(/\u0000/g, '').replace(/[<>]/g, '').trim();
+  return text ? text.slice(0, maxLength) : null;
+};
+
+const parseJsonObject = (value) => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return value;
+};
+
+const normalizeInputEvents = (value) => {
+  if (!Array.isArray(value)) return [];
+  return value.slice(-80).map((event) => {
+    const item = parseJsonObject(event);
+    return {
+      type: safeText(item.type, 40),
+      key: safeText(item.key, 32),
+      code: safeText(item.code, 40),
+      action: safeText(item.action, 40),
+      at: Number.isFinite(Number(item.at)) ? Number(item.at) : Date.now(),
+    };
+  });
+};
+
+const normalizeBrowserInfo = (value) => {
+  const browser = parseJsonObject(value);
+  return {
+    language: safeText(browser.language, 120),
+    timezone: safeText(browser.timezone, 120),
+    platform: safeText(browser.platform, 160),
+    screen: safeText(browser.screen, 80),
+    viewport: safeText(browser.viewport, 80),
+  };
+};
+
+const getUserAgent = (req) => safeText(req.get('user-agent'), 600);
+const getAcceptLanguage = (req) => safeText(req.get('accept-language'), 180);
+
+const recordTrafficEvent = async (req, details = {}) => {
+  const cookies = parseCookies(req.get('cookie'));
+  const session = verifySessionToken(cookies.ppt_terror_session);
+  const browser = normalizeBrowserInfo(details.browser);
+  const inputEvents = normalizeInputEvents(details.inputEvents);
+
+  await pool.query(
+    `INSERT INTO ppt_traffic (
+      player_id, player_name, event_type, path, method, status_code, request_ip,
+      user_agent, accept_language, browser_language, browser_timezone, platform,
+      screen, viewport, input_events
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7::inet, $8, $9, $10, $11, $12, $13, $14, $15::jsonb)`,
+    [
+      session?.playerId ?? null,
+      session?.playerName ?? null,
+      safeText(details.eventType, 80) ?? 'request',
+      safeText(details.path, 300) ?? safeText(req.originalUrl || req.path, 300) ?? '/',
+      safeText(req.method, 12),
+      Number.isInteger(details.statusCode) ? details.statusCode : null,
+      req.ip,
+      getUserAgent(req),
+      getAcceptLanguage(req),
+      browser.language,
+      browser.timezone,
+      browser.platform,
+      browser.screen,
+      browser.viewport,
+      JSON.stringify(inputEvents),
+    ],
+  );
+};
+
+const mapTrafficRows = (rows) =>
+  rows.map((row) => ({
+    id: Number(row.id),
+    playerId: row.player_id === null ? null : Number(row.player_id),
+    playerName: row.player_name,
+    eventType: row.event_type,
+    path: row.path,
+    method: row.method,
+    statusCode: row.status_code === null ? null : Number(row.status_code),
+    requestIp: row.request_ip,
+    userAgent: row.user_agent,
+    acceptLanguage: row.accept_language,
+    browserLanguage: row.browser_language,
+    browserTimezone: row.browser_timezone,
+    platform: row.platform,
+    screen: row.screen,
+    viewport: row.viewport,
+    inputEvents: row.input_events ?? [],
+    createdAt: row.created_at,
+  }));
 
 const initDatabase = async () => {
   await pool.query(`
@@ -246,11 +353,16 @@ const initDatabase = async () => {
       id BIGSERIAL PRIMARY KEY,
       player_name TEXT NOT NULL CHECK (char_length(player_name) BETWEEN 2 AND 40),
       password_hash TEXT NOT NULL,
+      is_admin BOOLEAN NOT NULL DEFAULT FALSE,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       last_login_at TIMESTAMPTZ
     );
   `);
+  await pool.query('ALTER TABLE ppt_players ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE;');
   await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_ppt_players_lower_name ON ppt_players (LOWER(player_name));');
+  for (const adminName of adminPlayerNames) {
+    await pool.query('UPDATE ppt_players SET is_admin = TRUE WHERE LOWER(player_name) = LOWER($1)', [adminName]);
+  }
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS ppt_scores (
@@ -267,9 +379,47 @@ const initDatabase = async () => {
   await pool.query('CREATE INDEX IF NOT EXISTS idx_ppt_scores_created_at ON ppt_scores (created_at DESC);');
   await pool.query('CREATE INDEX IF NOT EXISTS idx_ppt_scores_score ON ppt_scores (score DESC);');
   await pool.query('CREATE INDEX IF NOT EXISTS idx_ppt_scores_player_id ON ppt_scores (player_id);');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS ppt_traffic (
+      id BIGSERIAL PRIMARY KEY,
+      player_id BIGINT REFERENCES ppt_players(id) ON DELETE SET NULL,
+      player_name TEXT,
+      event_type TEXT NOT NULL DEFAULT 'request',
+      path TEXT,
+      method TEXT,
+      status_code INTEGER,
+      request_ip INET,
+      user_agent TEXT,
+      accept_language TEXT,
+      browser_language TEXT,
+      browser_timezone TEXT,
+      platform TEXT,
+      screen TEXT,
+      viewport TEXT,
+      input_events JSONB NOT NULL DEFAULT '[]'::jsonb,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_ppt_traffic_created_at ON ppt_traffic (created_at DESC);');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_ppt_traffic_player ON ppt_traffic (player_id, created_at DESC);');
 };
 
 app.use('/api', requireAllowedHost);
+
+app.use('/api', (req, res, next) => {
+  if (req.path === '/telemetry' || req.path.startsWith('/admin')) return next();
+  res.on('finish', () => {
+    void recordTrafficEvent(req, {
+      eventType: 'request',
+      statusCode: res.statusCode,
+      path: req.originalUrl,
+    }).catch((error) => {
+      console.error('[traffic]', error);
+    });
+  });
+  return next();
+});
 
 app.get('/healthz', asyncHandler(async (_req, res) => {
   await pool.query('SELECT 1');
@@ -280,7 +430,7 @@ app.get('/api/session', (req, res) => {
   const cookies = parseCookies(req.get('cookie'));
   const session = verifySessionToken(cookies.ppt_terror_session);
   if (!session) return res.json({ authenticated: false });
-  return res.json({ authenticated: true, playerName: session.playerName });
+  return res.json({ authenticated: true, playerName: session.playerName, isAdmin: Boolean(session.isAdmin) });
 });
 
 app.post('/api/register', asyncHandler(async (req, res) => {
@@ -294,17 +444,18 @@ app.post('/api/register', asyncHandler(async (req, res) => {
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
+  const isAdmin = adminPlayerNames.has(playerName.toLowerCase());
 
   try {
     const result = await pool.query(
-      `INSERT INTO ppt_players (player_name, password_hash, last_login_at)
-       VALUES ($1, $2, NOW())
-       RETURNING id, player_name`,
-      [playerName, passwordHash],
+      `INSERT INTO ppt_players (player_name, password_hash, is_admin, last_login_at)
+       VALUES ($1, $2, $3, NOW())
+       RETURNING id, player_name, is_admin`,
+      [playerName, passwordHash, isAdmin],
     );
     const player = result.rows[0];
-    setSessionCookie(res, createSessionToken({ playerId: Number(player.id), playerName: player.player_name }));
-    return res.status(201).json({ authenticated: true, playerName: player.player_name });
+    setSessionCookie(res, createSessionToken({ playerId: Number(player.id), playerName: player.player_name, isAdmin: player.is_admin }));
+    return res.status(201).json({ authenticated: true, playerName: player.player_name, isAdmin: player.is_admin });
   } catch (error) {
     if (error.code === '23505') {
       return res.status(409).json({ error: 'Ese nombre ya está registrado.' });
@@ -333,8 +484,8 @@ app.post('/api/login', asyncHandler(async (req, res) => {
 
   await pool.query('UPDATE ppt_players SET last_login_at = NOW() WHERE id = $1', [player.id]);
 
-  setSessionCookie(res, createSessionToken({ playerId: Number(player.id), playerName: player.player_name }));
-  return res.json({ authenticated: true, playerName: player.player_name });
+  setSessionCookie(res, createSessionToken({ playerId: Number(player.id), playerName: player.player_name, isAdmin: player.is_admin }));
+  return res.json({ authenticated: true, playerName: player.player_name, isAdmin: player.is_admin });
 }));
 
 app.post('/api/logout', (_req, res) => {
@@ -355,6 +506,27 @@ app.post('/api/scores', requireSession, asyncHandler(async (req, res) => {
     [req.session.playerId, req.session.playerName, score, won, req.ip],
   );
 
+  const best = await pool.query(
+    'SELECT MAX(score) AS best_score FROM ppt_scores WHERE player_id = $1',
+    [req.session.playerId],
+  );
+
+  return res.status(201).json({
+    ok: true,
+    bestScore: Number(best.rows[0]?.best_score ?? score),
+    isPersonalBest: score >= Number(best.rows[0]?.best_score ?? score),
+  });
+}));
+
+app.post('/api/telemetry', requireSession, asyncHandler(async (req, res) => {
+  const body = req.body ?? {};
+  await recordTrafficEvent(req, {
+    eventType: safeText(body.eventType, 80) ?? 'client',
+    statusCode: 200,
+    path: safeText(body.path, 300) ?? req.originalUrl,
+    browser: body.browser,
+    inputEvents: body.inputEvents,
+  });
   return res.status(201).json({ ok: true });
 }));
 
@@ -382,6 +554,67 @@ app.get('/api/leaderboard', requireSession, asyncHandler(async (_req, res) => {
     topWeek: mapLeaderboardRows(week.rows),
     topAllTime: mapLeaderboardRows(allTime.rows),
   });
+}));
+
+app.get('/api/admin/users', requireAdmin, asyncHandler(async (_req, res) => {
+  const rows = await pool.query(`
+    SELECT
+      p.id,
+      p.player_name,
+      p.is_admin,
+      p.created_at,
+      p.last_login_at,
+      COALESCE(MAX(s.score), 0) AS best_score,
+      COUNT(s.id) AS games,
+      MAX(s.created_at) AS last_played_at
+    FROM ppt_players p
+    LEFT JOIN ppt_scores s ON s.player_id = p.id
+    GROUP BY p.id
+    ORDER BY p.last_login_at DESC NULLS LAST, p.created_at DESC
+    LIMIT 100;
+  `);
+
+  return res.json({
+    users: rows.rows.map((row) => ({
+      id: Number(row.id),
+      playerName: row.player_name,
+      isAdmin: Boolean(row.is_admin),
+      bestScore: Number(row.best_score),
+      games: Number(row.games),
+      createdAt: row.created_at,
+      lastLoginAt: row.last_login_at,
+      lastPlayedAt: row.last_played_at,
+    })),
+  });
+}));
+
+app.get('/api/admin/traffic', requireAdmin, asyncHandler(async (req, res) => {
+  const limit = Math.min(300, Math.max(20, Number(req.query.limit) || 150));
+  const rows = await pool.query(
+    `SELECT *
+     FROM ppt_traffic
+     ORDER BY created_at DESC
+     LIMIT $1`,
+    [limit],
+  );
+  return res.json({ traffic: mapTrafficRows(rows.rows) });
+}));
+
+app.get('/api/admin/users/:id/inputs', requireAdmin, asyncHandler(async (req, res) => {
+  const userId = Number(req.params.id);
+  if (!Number.isInteger(userId) || userId < 1) {
+    return res.status(400).json({ error: 'Usuario inválido.' });
+  }
+
+  const rows = await pool.query(
+    `SELECT *
+     FROM ppt_traffic
+     WHERE player_id = $1 AND jsonb_array_length(input_events) > 0
+     ORDER BY created_at DESC
+     LIMIT 80`,
+    [userId],
+  );
+  return res.json({ events: mapTrafficRows(rows.rows) });
 }));
 
 const distDirectory = path.join(__dirname, 'dist');
