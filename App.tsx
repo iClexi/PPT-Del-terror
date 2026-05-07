@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { BookOpenCheck, LayoutDashboard, LogOut, RotateCcw, Trophy } from 'lucide-react';
 import { Login } from './components/Login';
 import { Game } from './components/Game';
 import { Button } from './components/Button';
@@ -82,22 +83,25 @@ function App() {
     <div className="min-h-screen bg-retro-bg flex flex-col">
       <nav className="p-4 bg-slate-900 border-b border-slate-700 flex justify-between items-center z-50">
         <div className="font-arcade text-retro-accent text-lg flex items-center gap-2">
-          <span>💀</span> PPT ATTACK
+          <BookOpenCheck size={24} />
+          <span>PPT ATTACK</span>
         </div>
         {screen !== ScreenState.LOGIN && !isCheckingSession && (
           <div className="flex items-center gap-4">
             {screen !== ScreenState.DASHBOARD && (
               <button
                 onClick={showDashboard}
-                className="text-xs text-gray-400 hover:text-white underline font-sans"
+                className="text-xs text-gray-400 hover:text-white font-sans inline-flex items-center gap-1"
               >
+                <LayoutDashboard size={14} />
                 Dashboard
               </button>
             )}
             <button 
               onClick={logout} 
-              className="text-xs text-gray-400 hover:text-white underline font-sans"
+              className="text-xs text-gray-400 hover:text-white font-sans inline-flex items-center gap-1"
             >
+              <LogOut size={14} />
               Cerrar sesión
             </button>
           </div>
@@ -129,8 +133,18 @@ function App() {
             </p>
             <div className="font-arcade text-yellow-400 mb-8">Puntaje Final: {finalScore}</div>
             <div className="flex gap-4 justify-center">
-              <Button onClick={resetGame} variant="primary">Intentar de nuevo</Button>
-              <Button onClick={showDashboard} variant="danger">Dashboard</Button>
+              <Button onClick={resetGame} variant="primary">
+                <span className="inline-flex items-center gap-2">
+                  <RotateCcw size={18} />
+                  Intentar de nuevo
+                </span>
+              </Button>
+              <Button onClick={showDashboard} variant="danger">
+                <span className="inline-flex items-center gap-2">
+                  <LayoutDashboard size={18} />
+                  Dashboard
+                </span>
+              </Button>
             </div>
           </div>
         )}
@@ -143,8 +157,18 @@ function App() {
             </p>
             <div className="font-arcade text-yellow-400 mb-8">Puntaje Final: {finalScore}</div>
             <div className="flex gap-4 justify-center">
-              <Button onClick={resetGame} variant="success">Jugar otra vez</Button>
-              <Button onClick={showDashboard} variant="primary">Dashboard</Button>
+              <Button onClick={resetGame} variant="success">
+                <span className="inline-flex items-center gap-2">
+                  <Trophy size={18} />
+                  Jugar otra vez
+                </span>
+              </Button>
+              <Button onClick={showDashboard} variant="primary">
+                <span className="inline-flex items-center gap-2">
+                  <LayoutDashboard size={18} />
+                  Dashboard
+                </span>
+              </Button>
             </div>
           </div>
         )}

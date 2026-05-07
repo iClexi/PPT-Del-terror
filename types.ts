@@ -18,7 +18,7 @@ export interface Entity {
   width: number;
   height: number;
   type: 'PLAYER' | 'PROJECTILE' | 'COLLECTIBLE' | 'PROFESSOR';
-  emoji: string;
+  kind: 'GRADE_FAIL' | 'TASK_FILE' | 'PPT_SAVE';
   velocity: { x: number; y: number };
 }
 

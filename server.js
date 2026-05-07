@@ -11,7 +11,7 @@ const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const requiredEnv = ['SESSION_SECRET', 'LOGIN_PASSWORD_HASH', 'DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'];
+const requiredEnv = ['SESSION_SECRET', 'DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'];
 for (const key of requiredEnv) {
   if (!process.env[key]) {
     throw new Error(`Missing required environment variable: ${key}`);
@@ -84,6 +84,7 @@ const loginLimiter = rateLimit({
 
 app.use('/api', apiLimiter);
 app.use('/api/login', loginLimiter);
+app.use('/api/register', loginLimiter);
 
 const asyncHandler = (handler) => (req, res, next) => {
   Promise.resolve(handler(req, res, next)).catch(next);
@@ -114,9 +115,12 @@ const parseCookies = (header = '') =>
       }),
   );
 
-const createSessionToken = (playerName) => {
+const dummyPasswordHash = '$2a$12$CwhDRHGO7lAupjd3EtwtxePFqgFKb5EKnBPBmhLXeRry0KyUilgnq';
+
+const createSessionToken = ({ playerId, playerName }) => {
   const payload = base64UrlEncode(
     JSON.stringify({
+      playerId,
       playerName,
       exp: Date.now() + sessionMaxAgeMs,
     }),
@@ -131,7 +135,9 @@ const verifySessionToken = (token) => {
 
   try {
     const session = JSON.parse(base64UrlDecode(payload));
-    if (!session.playerName || Number(session.exp) < Date.now()) return null;
+    if (!Number.isInteger(Number(session.playerId)) || !session.playerName || Number(session.exp) < Date.now()) {
+      return null;
+    }
     return session;
   } catch {
     return null;
@@ -181,6 +187,14 @@ const normalizePlayerName = (value) => {
   return playerName;
 };
 
+const normalizePassword = (value) => {
+  const password = String(value ?? '');
+  if (password.length < 8 || password.length > 128) {
+    throw new Error('La contraseña debe tener entre 8 y 128 caracteres.');
+  }
+  return password;
+};
+
 const requireSession = (req, res, next) => {
   const cookies = parseCookies(req.get('cookie'));
   const session = verifySessionToken(cookies.ppt_terror_session);
@@ -218,10 +232,30 @@ const mapLeaderboardRows = (rows) =>
     lastPlayedAt: row.last_played_at,
   }));
 
+const findPlayerByName = async (playerName) => {
+  const result = await pool.query(
+    'SELECT id, player_name, password_hash FROM ppt_players WHERE LOWER(player_name) = LOWER($1) LIMIT 1',
+    [playerName],
+  );
+  return result.rows[0] ?? null;
+};
+
 const initDatabase = async () => {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS ppt_players (
+      id BIGSERIAL PRIMARY KEY,
+      player_name TEXT NOT NULL CHECK (char_length(player_name) BETWEEN 2 AND 40),
+      password_hash TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      last_login_at TIMESTAMPTZ
+    );
+  `);
+  await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_ppt_players_lower_name ON ppt_players (LOWER(player_name));');
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS ppt_scores (
       id BIGSERIAL PRIMARY KEY,
+      player_id BIGINT REFERENCES ppt_players(id) ON DELETE SET NULL,
       player_name TEXT NOT NULL CHECK (char_length(player_name) BETWEEN 2 AND 40),
       score INTEGER NOT NULL CHECK (score >= 0 AND score <= 100000),
       won BOOLEAN NOT NULL DEFAULT FALSE,
@@ -229,8 +263,10 @@ const initDatabase = async () => {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
+  await pool.query('ALTER TABLE ppt_scores ADD COLUMN IF NOT EXISTS player_id BIGINT REFERENCES ppt_players(id) ON DELETE SET NULL;');
   await pool.query('CREATE INDEX IF NOT EXISTS idx_ppt_scores_created_at ON ppt_scores (created_at DESC);');
   await pool.query('CREATE INDEX IF NOT EXISTS idx_ppt_scores_score ON ppt_scores (score DESC);');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_ppt_scores_player_id ON ppt_scores (player_id);');
 };
 
 app.use('/api', requireAllowedHost);
@@ -247,22 +283,58 @@ app.get('/api/session', (req, res) => {
   return res.json({ authenticated: true, playerName: session.playerName });
 });
 
+app.post('/api/register', asyncHandler(async (req, res) => {
+  let playerName;
+  let password;
+  try {
+    playerName = normalizePlayerName(req.body?.name);
+    password = normalizePassword(req.body?.password);
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+
+  const passwordHash = await bcrypt.hash(password, 12);
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO ppt_players (player_name, password_hash, last_login_at)
+       VALUES ($1, $2, NOW())
+       RETURNING id, player_name`,
+      [playerName, passwordHash],
+    );
+    const player = result.rows[0];
+    setSessionCookie(res, createSessionToken({ playerId: Number(player.id), playerName: player.player_name }));
+    return res.status(201).json({ authenticated: true, playerName: player.player_name });
+  } catch (error) {
+    if (error.code === '23505') {
+      return res.status(409).json({ error: 'Ese nombre ya está registrado.' });
+    }
+    throw error;
+  }
+}));
+
 app.post('/api/login', asyncHandler(async (req, res) => {
   let playerName;
   try {
     playerName = normalizePlayerName(req.body?.name);
+    normalizePassword(req.body?.password);
   } catch (error) {
     return res.status(400).json({ error: error.message });
   }
 
   const password = String(req.body?.password ?? '');
-  const isValidPassword = await bcrypt.compare(password, process.env.LOGIN_PASSWORD_HASH);
-  if (!isValidPassword) {
+  const player = await findPlayerByName(playerName);
+  const passwordHash = player?.password_hash ?? dummyPasswordHash;
+  const isValidPassword = await bcrypt.compare(password, passwordHash);
+
+  if (!player || !isValidPassword) {
     return res.status(401).json({ error: 'Nombre o contraseña inválidos.' });
   }
 
-  setSessionCookie(res, createSessionToken(playerName));
-  return res.json({ authenticated: true, playerName });
+  await pool.query('UPDATE ppt_players SET last_login_at = NOW() WHERE id = $1', [player.id]);
+
+  setSessionCookie(res, createSessionToken({ playerId: Number(player.id), playerName: player.player_name }));
+  return res.json({ authenticated: true, playerName: player.player_name });
 }));
 
 app.post('/api/logout', (_req, res) => {
@@ -279,8 +351,8 @@ app.post('/api/scores', requireSession, asyncHandler(async (req, res) => {
   }
 
   await pool.query(
-    'INSERT INTO ppt_scores (player_name, score, won, request_ip) VALUES ($1, $2, $3, $4::inet)',
-    [req.session.playerName, score, won, req.ip],
+    'INSERT INTO ppt_scores (player_id, player_name, score, won, request_ip) VALUES ($1, $2, $3, $4, $5::inet)',
+    [req.session.playerId, req.session.playerName, score, won, req.ip],
   );
 
   return res.status(201).json({ ok: true });

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Play, RefreshCw } from 'lucide-react';
 import { LeaderboardEntry, LeaderboardResponse } from '../types';
 import { Button } from './Button';
 
@@ -96,9 +97,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ playerName, onPlay }) => {
           <h1 className="font-arcade text-2xl md:text-3xl text-white leading-relaxed">Dashboard del Terror</h1>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
-          <Button type="button" onClick={onPlay} variant="success">Jugar</Button>
+          <Button type="button" onClick={onPlay} variant="success">
+            <span className="inline-flex items-center justify-center gap-2">
+              <Play size={18} />
+              Jugar
+            </span>
+          </Button>
           <Button type="button" onClick={loadLeaderboard} disabled={isLoading}>
-            {isLoading ? 'Cargando...' : 'Actualizar'}
+            <span className="inline-flex items-center justify-center gap-2">
+              <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
+              {isLoading ? 'Cargando...' : 'Actualizar'}
+            </span>
           </Button>
         </div>
       </div>

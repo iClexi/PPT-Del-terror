@@ -25,6 +25,140 @@ export const Game: React.FC<GameProps> = ({ onGameOver }) => {
     uploadProgress: 0
   });
 
+  const drawRoundedRect = (
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    radius: number,
+  ) => {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+  };
+
+  const drawPlayerIcon = (ctx: CanvasRenderingContext2D, x: number, y: number) => {
+    ctx.save();
+    ctx.translate(x, y);
+
+    ctx.fillStyle = '#38bdf8';
+    drawRoundedRect(ctx, 8, 18, 24, 18, 5);
+    ctx.fill();
+    ctx.strokeStyle = '#e0f2fe';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = '#facc15';
+    ctx.beginPath();
+    ctx.moveTo(20, 3);
+    ctx.lineTo(36, 11);
+    ctx.lineTo(20, 19);
+    ctx.lineTo(4, 11);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = '#111827';
+    drawRoundedRect(ctx, 11, 24, 18, 9, 2);
+    ctx.fill();
+    ctx.fillStyle = '#22c55e';
+    ctx.fillRect(15, 27, 10, 2);
+
+    ctx.restore();
+  };
+
+  const drawGradeFailIcon = (ctx: CanvasRenderingContext2D, entity: Entity) => {
+    ctx.save();
+    const centerX = entity.x + entity.width / 2;
+    const centerY = entity.y + entity.height / 2;
+    ctx.translate(centerX, centerY);
+    ctx.fillStyle = '#ef4444';
+    ctx.strokeStyle = '#fecaca';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    for (let i = 0; i < 8; i += 1) {
+      const angle = (Math.PI / 4) * i + Math.PI / 8;
+      const px = Math.cos(angle) * 17;
+      const py = Math.sin(angle) * 17;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('F', 0, 1);
+    ctx.restore();
+  };
+
+  const drawTaskFileIcon = (ctx: CanvasRenderingContext2D, entity: Entity) => {
+    ctx.save();
+    ctx.translate(entity.x, entity.y);
+    ctx.fillStyle = '#f8fafc';
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 2;
+    drawRoundedRect(ctx, 4, 2, 24, 30, 3);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillRect(9, 10, 13, 3);
+    ctx.fillRect(9, 16, 14, 3);
+    ctx.fillRect(9, 22, 10, 3);
+    ctx.restore();
+  };
+
+  const drawPptSaveIcon = (ctx: CanvasRenderingContext2D, entity: Entity) => {
+    ctx.save();
+    ctx.translate(entity.x, entity.y);
+    ctx.fillStyle = '#16a34a';
+    ctx.strokeStyle = '#bbf7d0';
+    ctx.lineWidth = 2;
+    drawRoundedRect(ctx, 2, 2, 30, 30, 5);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#052e16';
+    ctx.fillRect(9, 8, 16, 4);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 8px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('PPT', 17, 20);
+    ctx.beginPath();
+    ctx.moveTo(17, 26);
+    ctx.lineTo(11, 20);
+    ctx.lineTo(15, 20);
+    ctx.lineTo(15, 13);
+    ctx.lineTo(19, 13);
+    ctx.lineTo(19, 20);
+    ctx.lineTo(23, 20);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  };
+
+  const drawEntity = (ctx: CanvasRenderingContext2D, entity: Entity) => {
+    if (entity.kind === 'GRADE_FAIL') {
+      drawGradeFailIcon(ctx, entity);
+      return;
+    }
+    if (entity.kind === 'TASK_FILE') {
+      drawTaskFileIcon(ctx, entity);
+      return;
+    }
+    drawPptSaveIcon(ctx, entity);
+  };
+
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (gameState.current.keys.hasOwnProperty(e.code)) {
       gameState.current.keys[e.code] = true;
@@ -71,7 +205,7 @@ export const Game: React.FC<GameProps> = ({ onGameOver }) => {
     let animationFrameId: number;
 
     const spawnProjectile = () => {
-      const type = Math.random() > 0.8 ? 'F' : 'TAREA'; // F is harder/faster
+      const type = Math.random() > 0.8 ? 'F' : 'TAREA';
       const size = 30;
       gameState.current.projectiles.push({
         id: Date.now() + Math.random(),
@@ -80,7 +214,7 @@ export const Game: React.FC<GameProps> = ({ onGameOver }) => {
         width: size,
         height: size,
         type: 'PROJECTILE',
-        emoji: type === 'F' ? '❌' : '📝',
+        kind: type === 'F' ? 'GRADE_FAIL' : 'TASK_FILE',
         velocity: { x: 0, y: type === 'F' ? 5 : 3 }
       });
     };
@@ -94,12 +228,15 @@ export const Game: React.FC<GameProps> = ({ onGameOver }) => {
         width: size,
         height: size,
         type: 'COLLECTIBLE',
-        emoji: '💾', // Floppy disk implies PPT save
+        kind: 'PPT_SAVE',
         velocity: { x: 0, y: 4 }
       });
     };
 
-    const checkCollision = (rect1: any, rect2: any) => {
+    const checkCollision = (
+      rect1: { x: number; y: number; width: number; height: number },
+      rect2: { x: number; y: number; width: number; height: number },
+    ) => {
       return (
         rect1.x < rect2.x + rect2.width &&
         rect1.x + rect1.width > rect2.x &&
@@ -217,13 +354,11 @@ export const Game: React.FC<GameProps> = ({ onGameOver }) => {
       });
 
       // Draw Player
-      ctx.font = "40px Arial";
-      ctx.fillText("🎓", state.player.x + 20, state.player.y + 35);
+      drawPlayerIcon(ctx, state.player.x, state.player.y);
 
       // Draw Entities
-      ctx.font = "30px Arial";
-      state.projectiles.forEach(p => ctx.fillText(p.emoji, p.x + 15, p.y + 25));
-      state.collectibles.forEach(c => ctx.fillText(c.emoji, c.x + 15, c.y + 25));
+      state.projectiles.forEach(p => drawEntity(ctx, p));
+      state.collectibles.forEach(c => drawEntity(ctx, c));
 
       // Sync React State for UI
       setStats({ score: state.score, uploadProgress: state.uploadProgress });
