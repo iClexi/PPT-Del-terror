@@ -2,21 +2,27 @@
 
 # PPT del Terror
 
-### Juego web tipo endless runner con login, rankings, panel administrativo y backend seguro
+### Juego web tipo endless runner con autenticación, rankings, panel administrativo y backend seguro
 
-PPT del Terror es un juego web inspirado en la presión de subir una presentación antes de tiempo. El jugador inicia sesión, esquiva obstáculos, recoge archivos PPT, acumula puntuación y compite en rankings semanales e históricos.
+PPT del Terror es un juego web inspirado en la presión de subir una presentación antes de tiempo.  
+El jugador inicia sesión, esquiva obstáculos, recoge archivos PPT, acumula puntuación y compite en rankings semanales e históricos.
 
 </div>
 
 <div align="center">
 
-![React](https://img.shields.io/badge/React-111827?style=for-the-badge&logo=react&logoColor=61DAFB)
-![Vite](https://img.shields.io/badge/Vite-1f2937?style=for-the-badge&logo=vite&logoColor=646CFF)
-![TypeScript](https://img.shields.io/badge/TypeScript-0f172a?style=for-the-badge&logo=typescript&logoColor=3178C6)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-111827?style=for-the-badge&logo=tailwindcss&logoColor=38BDF8)
-![Express](https://img.shields.io/badge/Express-020617?style=for-the-badge&logo=express&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-111827?style=for-the-badge&logo=postgresql&logoColor=4169E1)
-![Security](https://img.shields.io/badge/Security_Hardened-020617?style=for-the-badge&logo=securityscorecard&logoColor=white)
+![React](https://img.shields.io/badge/React-0ea5e9?style=for-the-badge&logo=react&logoColor=ffffff&labelColor=0f172a)
+![Vite](https://img.shields.io/badge/Vite-8b5cf6?style=for-the-badge&logo=vite&logoColor=ffffff&labelColor=1e1b4b)
+![TypeScript](https://img.shields.io/badge/TypeScript-2563eb?style=for-the-badge&logo=typescript&logoColor=ffffff&labelColor=0f172a)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06b6d4?style=for-the-badge&logo=tailwindcss&logoColor=ffffff&labelColor=083344)
+![Node.js](https://img.shields.io/badge/Node.js-22c55e?style=for-the-badge&logo=nodedotjs&logoColor=ffffff&labelColor=052e16)
+![Express](https://img.shields.io/badge/Express-374151?style=for-the-badge&logo=express&logoColor=ffffff&labelColor=030712)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-3b82f6?style=for-the-badge&logo=postgresql&logoColor=ffffff&labelColor=172554)
+![Helmet](https://img.shields.io/badge/Helmet-7c3aed?style=for-the-badge&logo=helmet&logoColor=ffffff&labelColor=2e1065)
+![bcrypt](https://img.shields.io/badge/bcrypt-f97316?style=for-the-badge&logo=securityscorecard&logoColor=ffffff&labelColor=431407)
+![Rate Limiting](https://img.shields.io/badge/Rate_Limiting-dc2626?style=for-the-badge&logo=icloud&logoColor=ffffff&labelColor=450a0a)
+![Security](https://img.shields.io/badge/Security_Hardened-10b981?style=for-the-badge&logo=securityscorecard&logoColor=ffffff&labelColor=064e3b)
+![Game](https://img.shields.io/badge/Endless_Runner-facc15?style=for-the-badge&logo=gamejolt&logoColor=111827&labelColor=713f12)
 
 </div>
 
@@ -24,11 +30,33 @@ PPT del Terror es un juego web inspirado en la presión de subir una presentaci�
 
 ## Descripción
 
-PPT del Terror es una aplicación web completa que combina un juego arcade con autenticación, sesiones, ranking competitivo, almacenamiento en base de datos y panel administrativo.
+PPT del Terror es una aplicación web completa que combina un juego arcade tipo endless runner con autenticación, sesiones, ranking competitivo, almacenamiento en base de datos y panel administrativo.
 
-El proyecto fue desarrollado con React, Vite, TypeScript y Tailwind CSS en el frontend, mientras que el backend utiliza Express, PostgreSQL, Helmet, bcrypt y rate limiting.
+El proyecto fue desarrollado con React, Vite, TypeScript y Tailwind CSS en el frontend.  
+El backend utiliza Node.js, Express, PostgreSQL, Helmet, bcryptjs y express-rate-limit para manejar usuarios, sesiones, puntuaciones, telemetría y controles básicos de seguridad.
 
 La idea principal del juego es sobrevivir a la presión de entregar un PPT antes de que todo salga mal. El jugador controla una nave, evita obstáculos, recoge archivos PPT y trata de conseguir la mejor puntuación posible.
+
+---
+
+## Objetivo del Proyecto
+
+El objetivo de PPT del Terror es demostrar una aplicación web real que combine desarrollo frontend, backend, base de datos, autenticación, seguridad básica y despliegue en producción.
+
+Este proyecto no es solo un juego visual. También incluye una arquitectura funcional con:
+
+- Sistema de usuarios.
+- Login y registro.
+- Sesiones persistentes.
+- Ranking semanal.
+- Ranking histórico.
+- Panel administrativo.
+- Eventos técnicos del juego.
+- Base de datos PostgreSQL.
+- Protección de rutas sensibles.
+- Rate limiting.
+- Headers de seguridad.
+- Separación de variables sensibles mediante `.env`.
 
 ---
 
@@ -50,14 +78,15 @@ La idea principal del juego es sobrevivir a la presión de entregar un PPT antes
 - Backend conectado a PostgreSQL.
 - Headers de seguridad con Helmet.
 - Protección básica contra hosts y orígenes no permitidos.
+- Variables sensibles fuera del repositorio.
 
 ---
 
-## Demo Conceptual
+## Concepto del Juego
 
-El jugador debe mover la nave para evitar archivos dañinos, tareas, notas de reprobación y presión académica.
+El jugador debe mover una nave para evitar obstáculos relacionados con la presión académica, tareas, errores, notas bajas y el miedo de no subir la presentación a tiempo.
 
-Mientras juega, puede recoger archivos PPT para aumentar el progreso de subida.  
+Durante la partida puede recoger archivos PPT para aumentar su progreso de subida.  
 Si logra avanzar lo suficiente, consigue subir el PPT.  
 Si choca con un obstáculo, reprueba.
 
@@ -67,39 +96,29 @@ Si choca con un obstáculo, reprueba.
 
 ### Frontend
 
-- React
-- Vite
-- TypeScript
-- Tailwind CSS
-- Lucide React
-- Canvas API
+| Tecnología | Uso |
+| --- | --- |
+| React | Construcción de interfaz |
+| Vite | Entorno de desarrollo y build |
+| TypeScript | Tipado estático |
+| Tailwind CSS | Estilos y diseño responsive |
+| Lucide React | Iconos |
+| Canvas API | Renderizado y lógica visual del juego |
+
+---
 
 ### Backend
 
-- Node.js
-- Express
-- PostgreSQL
-- pg
-- bcryptjs
-- Helmet
-- express-rate-limit
-- Crypto nativo de Node.js
-
-### Seguridad
-
-- Cookies `HttpOnly`.
-- Cookies `Secure`.
-- `SameSite=Lax`.
-- Rate limiting en rutas sensibles.
-- Validación de host permitido.
-- Validación de origen en métodos sensibles.
-- Contraseñas hasheadas con bcrypt.
-- Sesiones firmadas con HMAC SHA-256.
-- CSP mediante Helmet.
-- Bloqueo de iframes con `frame-ancestors 'none'`.
-- Desactivación de `X-Powered-By`.
-- Sanitización básica de campos técnicos.
-- Variables sensibles fuera del repositorio.
+| Tecnología | Uso |
+| --- | --- |
+| Node.js | Runtime del servidor |
+| Express | API y servidor backend |
+| PostgreSQL | Base de datos |
+| pg | Cliente PostgreSQL |
+| bcryptjs | Hash de contraseñas |
+| Helmet | Headers de seguridad |
+| express-rate-limit | Protección contra abuso |
+| Crypto nativo de Node.js | Firma y validación de sesión |
 
 ---
 
@@ -116,12 +135,15 @@ Si choca con un obstáculo, reprueba.
 - Pantalla de victoria.
 - Pantalla de derrota.
 - Popup de nuevo récord personal.
+- Registro de partidas.
+- Registro de victorias.
+- Actualización de mejores puntuaciones.
 
 ---
 
 ## Sistema de Usuarios
 
-La aplicación incluye autenticación real con base de datos.
+La aplicación incluye autenticación real con base de datos PostgreSQL.
 
 Funciones disponibles:
 
@@ -132,18 +154,21 @@ Funciones disponibles:
 - Validación de sesión activa.
 - Diferenciación entre usuario normal y administrador.
 - Nombre de jugador único.
-- Restricciones de longitud y caracteres permitidos.
+- Restricciones de longitud.
+- Validación de caracteres permitidos.
+- Actualización de último login.
+- Hash de contraseña con bcrypt.
 
 ---
 
-## Rankings
+## Sistema de Rankings
 
-El juego guarda las puntuaciones en PostgreSQL y genera dos rankings principales:
+El juego guarda las puntuaciones en PostgreSQL y genera rankings competitivos.
 
 | Ranking | Descripción |
 | --- | --- |
-| Ranking semanal | Mejores puntuaciones de los últimos 7 días |
-| Ranking histórico | Mejores puntuaciones de todos los tiempos |
+| Ranking semanal | Muestra las mejores puntuaciones recientes |
+| Ranking histórico | Muestra las mejores puntuaciones de todos los tiempos |
 
 Cada entrada puede mostrar:
 
@@ -172,13 +197,64 @@ El panel permite observar:
 - Zona horaria.
 - Eventos de controles del juego.
 
-El panel no registra contraseñas ni campos sensibles.
+El panel está pensado para auditoría técnica y revisión de actividad.  
+No registra contraseñas ni campos sensibles.
+
+---
+
+## Seguridad Implementada
+
+PPT del Terror incluye varias medidas de seguridad para proteger sesiones, rutas y datos de usuarios.
+
+### Autenticación
+
+- Registro con contraseña.
+- Login con bcrypt.
+- Comparación segura de contraseñas.
+- Hash dummy para reducir diferencias de tiempo cuando el usuario no existe.
+- Sesión firmada con HMAC SHA-256.
+
+### Cookies
+
+- Cookie `HttpOnly`.
+- Cookie `Secure` en producción.
+- `SameSite=Lax`.
+- Expiración configurada.
+- Limpieza de cookie al cerrar sesión.
+
+### Protección de API
+
+- Rate limiting general en rutas `/api`.
+- Rate limiting más estricto en `/api/login`.
+- Rate limiting más estricto en `/api/register`.
+- Validación de host permitido.
+- Validación de origen para métodos sensibles.
+- Control de acceso para rutas administrativas.
+
+### Headers HTTP
+
+- `X-Frame-Options: DENY`.
+- `Content-Security-Policy`.
+- `frame-ancestors 'none'`.
+- `object-src 'none'`.
+- `base-uri 'self'`.
+- `form-action 'self'`.
+- `X-Powered-By` desactivado.
+- Protección adicional mediante Helmet.
+
+### Datos Sensibles
+
+El repositorio no debe contener:
+
+- Contraseñas reales.
+- Tokens reales.
+- Secretos de sesión reales.
+- Archivos `.env` reales.
+- Credenciales de base de datos reales.
 
 ---
 
 ## Variables de Entorno
-
-El proyecto utiliza variables de entorno para separar configuración sensible del código fuente.
 
 Crea un archivo `.env` basado en `.env.example`.
 
@@ -226,7 +302,7 @@ Crea el archivo `.env`:
 cp .env.example .env
 ```
 
-Edita las variables de entorno según tu ambiente:
+Edita las variables de entorno:
 
 ```bash
 nano .env
@@ -262,7 +338,7 @@ Otorga permisos sobre el esquema público:
 GRANT ALL ON SCHEMA public TO ppt_terror_user;
 ```
 
-Salir:
+Sal de PostgreSQL:
 
 ```sql
 \q
@@ -274,25 +350,23 @@ El servidor crea automáticamente las tablas necesarias al iniciar.
 
 ## Ejecución en Desarrollo
 
-Ejecutar Vite en modo desarrollo:
+Ejecuta Vite en modo desarrollo:
 
 ```bash
 npm run dev
 ```
 
-El frontend se levanta con Vite.
-
 ---
 
 ## Compilación para Producción
 
-Construir el proyecto:
+Construye el proyecto:
 
 ```bash
 npm run build
 ```
 
-Ejecutar el backend con Express:
+Ejecuta el backend con Express:
 
 ```bash
 npm start
@@ -395,57 +469,7 @@ El backend inicializa automáticamente las tablas principales:
 
 ---
 
-## Seguridad Aplicada
-
-El proyecto implementa varias medidas de seguridad importantes para una aplicación web pequeña pero real.
-
-### Autenticación
-
-- Registro con contraseña.
-- Login con bcrypt.
-- Comparación segura de contraseñas.
-- Hash dummy para reducir diferencias de tiempo cuando el usuario no existe.
-- Sesión firmada con HMAC SHA-256.
-
-### Cookies
-
-- `HttpOnly`.
-- `Secure`.
-- `SameSite=Lax`.
-- Expiración configurada.
-- Limpieza de cookie al cerrar sesión.
-
-### Protección de API
-
-- Rate limiting general en `/api`.
-- Rate limiting más estricto en `/api/login`.
-- Rate limiting más estricto en `/api/register`.
-- Validación de host permitido.
-- Validación de origen para métodos `POST`, `PUT`, `PATCH` y `DELETE`.
-
-### Headers HTTP
-
-- `X-Frame-Options: DENY`.
-- `Content-Security-Policy`.
-- `frame-ancestors 'none'`.
-- `object-src 'none'`.
-- `base-uri 'self'`.
-- `form-action 'self'`.
-- `X-Powered-By` desactivado.
-
-### Datos Sensibles
-
-El repositorio no debe contener:
-
-- Contraseñas reales.
-- Tokens reales.
-- Secretos de sesión reales.
-- Archivos `.env` reales.
-- Credenciales de base de datos reales.
-
----
-
-## Deploy en Producción
+## Despliegue en Producción
 
 Flujo recomendado:
 
@@ -513,16 +537,14 @@ journalctl -u ppt-terror -f
 
 ## Reverse Proxy
 
-El proyecto incluye un archivo `nginx.conf` para servir el frontend como aplicación estática.
+En producción se recomienda ejecutar `server.js` detrás de NGINX, Apache o Cloudflare Tunnel.
 
-Para producción completa con API, se recomienda ejecutar `server.js` detrás de un reverse proxy, ya que Express sirve tanto el frontend compilado como las rutas `/api`.
-
-Ejemplo conceptual:
+Flujo recomendado:
 
 ```text
 Cliente
-  -> Dominio público
-  -> Reverse proxy
+  -> Dominio público con HTTPS
+  -> Reverse proxy o Cloudflare Tunnel
   -> Node.js Express en puerto 1311
   -> PostgreSQL
 ```
