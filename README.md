@@ -1,29 +1,634 @@
+<div align="center">
+
 # PPT del Terror
 
-PPT del Terror es un juego web tipo endless runner inspirado en la presión de subir una presentación antes de tiempo. El jugador inicia sesión, juega desde teclado o móvil, acumula puntuación y compite en rankings semanales y globales.
+### Juego web tipo endless runner con login, rankings, panel administrativo y backend seguro
 
-## Qué Ofrece
+PPT del Terror es un juego web inspirado en la presión de subir una presentación antes de tiempo. El jugador inicia sesión, esquiva obstáculos, recoge archivos PPT, acumula puntuación y compite en rankings semanales e históricos.
 
-- Login y registro con sesiones seguras.
-- Juego infinito con dificultad progresiva.
-- Controles con flechas, WASD y arrastre táctil en móvil.
-- Ranking semanal y ranking histórico sobre PostgreSQL.
-- Popup de nuevo récord personal.
-- Dashboard responsive para ver puntuaciones sin scroll horizontal innecesario.
-- Panel admin para iClexi con tráfico técnico, usuarios, navegador y eventos de control del juego.
-- Rate limiting en login y registro.
+</div>
 
-## Stack
+<div align="center">
+
+![React](https://img.shields.io/badge/React-111827?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Vite](https://img.shields.io/badge/Vite-1f2937?style=for-the-badge&logo=vite&logoColor=646CFF)
+![TypeScript](https://img.shields.io/badge/TypeScript-0f172a?style=for-the-badge&logo=typescript&logoColor=3178C6)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-111827?style=for-the-badge&logo=tailwindcss&logoColor=38BDF8)
+![Express](https://img.shields.io/badge/Express-020617?style=for-the-badge&logo=express&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-111827?style=for-the-badge&logo=postgresql&logoColor=4169E1)
+![Security](https://img.shields.io/badge/Security_Hardened-020617?style=for-the-badge&logo=securityscorecard&logoColor=white)
+
+</div>
+
+---
+
+## Descripción
+
+PPT del Terror es una aplicación web completa que combina un juego arcade con autenticación, sesiones, ranking competitivo, almacenamiento en base de datos y panel administrativo.
+
+El proyecto fue desarrollado con React, Vite, TypeScript y Tailwind CSS en el frontend, mientras que el backend utiliza Express, PostgreSQL, Helmet, bcrypt y rate limiting.
+
+La idea principal del juego es sobrevivir a la presión de entregar un PPT antes de que todo salga mal. El jugador controla una nave, evita obstáculos, recoge archivos PPT y trata de conseguir la mejor puntuación posible.
+
+---
+
+## Características Principales
+
+- Juego web tipo endless runner.
+- Login y registro de usuarios.
+- Sesiones seguras mediante cookie HTTP-only.
+- Contraseñas protegidas con bcrypt.
+- Ranking semanal.
+- Ranking histórico.
+- Detección de récord personal.
+- Dashboard responsive.
+- Panel administrativo para iClexi.
+- Registro técnico de tráfico y eventos del juego.
+- Soporte para teclado y controles táctiles.
+- Validación de usuarios y contraseñas.
+- Rate limiting para login y registro.
+- Backend conectado a PostgreSQL.
+- Headers de seguridad con Helmet.
+- Protección básica contra hosts y orígenes no permitidos.
+
+---
+
+## Demo Conceptual
+
+El jugador debe mover la nave para evitar archivos dañinos, tareas, notas de reprobación y presión académica.
+
+Mientras juega, puede recoger archivos PPT para aumentar el progreso de subida.  
+Si logra avanzar lo suficiente, consigue subir el PPT.  
+Si choca con un obstáculo, reprueba.
+
+---
+
+## Stack Técnico
+
+### Frontend
 
 - React
 - Vite
 - TypeScript
 - Tailwind CSS
+- Lucide React
+- Canvas API
+
+### Backend
+
+- Node.js
 - Express
 - PostgreSQL
+- pg
+- bcryptjs
 - Helmet
-- bcrypt
+- express-rate-limit
+- Crypto nativo de Node.js
 
-## Seguridad y Transparencia
+### Seguridad
 
-El repositorio publica el código fuente de la página, no secretos. Los archivos `.env` reales están ignorados por Git y las variables sensibles deben vivir en el servidor, fuera del commit.
+- Cookies `HttpOnly`.
+- Cookies `Secure`.
+- `SameSite=Lax`.
+- Rate limiting en rutas sensibles.
+- Validación de host permitido.
+- Validación de origen en métodos sensibles.
+- Contraseñas hasheadas con bcrypt.
+- Sesiones firmadas con HMAC SHA-256.
+- CSP mediante Helmet.
+- Bloqueo de iframes con `frame-ancestors 'none'`.
+- Desactivación de `X-Powered-By`.
+- Sanitización básica de campos técnicos.
+- Variables sensibles fuera del repositorio.
+
+---
+
+## Funcionalidades del Juego
+
+- Movimiento con flechas.
+- Movimiento con WASD.
+- Soporte móvil mediante arrastre táctil.
+- Dificultad progresiva.
+- Obstáculos generados dinámicamente.
+- Coleccionables tipo PPT.
+- Frases aleatorias del profesor.
+- Sistema de puntuación.
+- Pantalla de victoria.
+- Pantalla de derrota.
+- Popup de nuevo récord personal.
+
+---
+
+## Sistema de Usuarios
+
+La aplicación incluye autenticación real con base de datos.
+
+Funciones disponibles:
+
+- Registro de jugador.
+- Inicio de sesión.
+- Cierre de sesión.
+- Persistencia de sesión.
+- Validación de sesión activa.
+- Diferenciación entre usuario normal y administrador.
+- Nombre de jugador único.
+- Restricciones de longitud y caracteres permitidos.
+
+---
+
+## Rankings
+
+El juego guarda las puntuaciones en PostgreSQL y genera dos rankings principales:
+
+| Ranking | Descripción |
+| --- | --- |
+| Ranking semanal | Mejores puntuaciones de los últimos 7 días |
+| Ranking histórico | Mejores puntuaciones de todos los tiempos |
+
+Cada entrada puede mostrar:
+
+- Nombre del jugador.
+- Mejor puntuación.
+- Cantidad de partidas.
+- Victorias.
+- Última vez jugado.
+
+---
+
+## Panel Administrativo
+
+El proyecto incluye un panel administrativo reservado para usuarios marcados como administradores.
+
+El panel permite observar:
+
+- Usuarios registrados.
+- Último login.
+- Mejor puntuación.
+- Cantidad de partidas.
+- Tráfico reciente.
+- Navegador utilizado.
+- Plataforma del usuario.
+- Viewport.
+- Zona horaria.
+- Eventos de controles del juego.
+
+El panel no registra contraseñas ni campos sensibles.
+
+---
+
+## Variables de Entorno
+
+El proyecto utiliza variables de entorno para separar configuración sensible del código fuente.
+
+Crea un archivo `.env` basado en `.env.example`.
+
+```env
+PORT=1311
+NODE_ENV=production
+APP_URL=https://terror.iclexi.tech
+ALLOWED_HOSTS=terror.iclexi.tech,localhost,127.0.0.1
+COOKIE_SECURE=true
+SESSION_SECRET=replace-with-random-hex
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_NAME=ppt_terror_db
+DB_USER=ppt_terror_user
+DB_PASSWORD=replace-with-db-password
+DB_SSL=false
+ADMIN_PLAYER_NAMES=iClexi
+```
+
+---
+
+## Instalación Local
+
+Clona el repositorio:
+
+```bash
+git clone https://github.com/iClexi/PPT-Del-terror.git
+```
+
+Entra al proyecto:
+
+```bash
+cd PPT-Del-terror
+```
+
+Instala dependencias:
+
+```bash
+npm install
+```
+
+Crea el archivo `.env`:
+
+```bash
+cp .env.example .env
+```
+
+Edita las variables de entorno según tu ambiente:
+
+```bash
+nano .env
+```
+
+---
+
+## Base de Datos PostgreSQL
+
+Crea la base de datos y el usuario para la aplicación:
+
+```bash
+sudo -u postgres psql
+```
+
+Dentro de PostgreSQL:
+
+```sql
+CREATE DATABASE ppt_terror_db;
+CREATE USER ppt_terror_user WITH PASSWORD 'replace-with-db-password';
+GRANT ALL PRIVILEGES ON DATABASE ppt_terror_db TO ppt_terror_user;
+```
+
+Entra a la base de datos:
+
+```sql
+\c ppt_terror_db
+```
+
+Otorga permisos sobre el esquema público:
+
+```sql
+GRANT ALL ON SCHEMA public TO ppt_terror_user;
+```
+
+Salir:
+
+```sql
+\q
+```
+
+El servidor crea automáticamente las tablas necesarias al iniciar.
+
+---
+
+## Ejecución en Desarrollo
+
+Ejecutar Vite en modo desarrollo:
+
+```bash
+npm run dev
+```
+
+El frontend se levanta con Vite.
+
+---
+
+## Compilación para Producción
+
+Construir el proyecto:
+
+```bash
+npm run build
+```
+
+Ejecutar el backend con Express:
+
+```bash
+npm start
+```
+
+Por defecto, el servidor escucha en:
+
+```text
+http://localhost:1311
+```
+
+---
+
+## Scripts Disponibles
+
+| Comando | Descripción |
+| --- | --- |
+| `npm run dev` | Ejecuta Vite en modo desarrollo |
+| `npm run build` | Compila TypeScript y genera el build de Vite |
+| `npm start` | Ejecuta el servidor Express |
+| `npm run preview` | Previsualiza el build con Vite |
+| `npm run check` | Ejecuta verificación de TypeScript sin compilar |
+
+---
+
+## Health Check
+
+El backend incluye una ruta para validar que el servidor y la base de datos están funcionando.
+
+```bash
+curl http://localhost:1311/healthz
+```
+
+Respuesta esperada:
+
+```json
+{
+  "ok": true
+}
+```
+
+---
+
+## Rutas Principales de API
+
+| Método | Ruta | Descripción |
+| --- | --- | --- |
+| `GET` | `/healthz` | Verifica estado del servidor y conexión a PostgreSQL |
+| `GET` | `/api/session` | Valida si existe una sesión activa |
+| `POST` | `/api/register` | Registra un nuevo jugador |
+| `POST` | `/api/login` | Inicia sesión |
+| `POST` | `/api/logout` | Cierra sesión |
+| `POST` | `/api/scores` | Guarda puntuación del jugador |
+| `POST` | `/api/telemetry` | Guarda eventos técnicos del juego |
+| `GET` | `/api/leaderboard` | Devuelve rankings semanal e histórico |
+| `GET` | `/api/admin/users` | Lista usuarios para el panel admin |
+| `GET` | `/api/admin/traffic` | Lista tráfico reciente |
+| `GET` | `/api/admin/users/:id/inputs` | Lista eventos de controles por usuario |
+
+---
+
+## Estructura del Proyecto
+
+```text
+.
+├── components/
+│   ├── AdminPanel.tsx
+│   ├── Button.tsx
+│   ├── Dashboard.tsx
+│   ├── Game.tsx
+│   └── Login.tsx
+├── public/
+├── App.tsx
+├── constants.ts
+├── index.css
+├── index.html
+├── index.tsx
+├── metadata.json
+├── nginx.conf
+├── package.json
+├── postcss.config.js
+├── server.js
+├── tailwind.config.js
+├── tsconfig.json
+├── types.ts
+└── vite.config.ts
+```
+
+---
+
+## Modelo de Datos
+
+El backend inicializa automáticamente las tablas principales:
+
+| Tabla | Uso |
+| --- | --- |
+| `ppt_players` | Usuarios, contraseñas hasheadas, rol admin y último login |
+| `ppt_scores` | Puntuaciones, victorias, IP de solicitud y fecha |
+| `ppt_traffic` | Eventos técnicos, navegador, plataforma, viewport e inputs del juego |
+
+---
+
+## Seguridad Aplicada
+
+El proyecto implementa varias medidas de seguridad importantes para una aplicación web pequeña pero real.
+
+### Autenticación
+
+- Registro con contraseña.
+- Login con bcrypt.
+- Comparación segura de contraseñas.
+- Hash dummy para reducir diferencias de tiempo cuando el usuario no existe.
+- Sesión firmada con HMAC SHA-256.
+
+### Cookies
+
+- `HttpOnly`.
+- `Secure`.
+- `SameSite=Lax`.
+- Expiración configurada.
+- Limpieza de cookie al cerrar sesión.
+
+### Protección de API
+
+- Rate limiting general en `/api`.
+- Rate limiting más estricto en `/api/login`.
+- Rate limiting más estricto en `/api/register`.
+- Validación de host permitido.
+- Validación de origen para métodos `POST`, `PUT`, `PATCH` y `DELETE`.
+
+### Headers HTTP
+
+- `X-Frame-Options: DENY`.
+- `Content-Security-Policy`.
+- `frame-ancestors 'none'`.
+- `object-src 'none'`.
+- `base-uri 'self'`.
+- `form-action 'self'`.
+- `X-Powered-By` desactivado.
+
+### Datos Sensibles
+
+El repositorio no debe contener:
+
+- Contraseñas reales.
+- Tokens reales.
+- Secretos de sesión reales.
+- Archivos `.env` reales.
+- Credenciales de base de datos reales.
+
+---
+
+## Deploy en Producción
+
+Flujo recomendado:
+
+```bash
+git clone https://github.com/iClexi/PPT-Del-terror.git
+cd PPT-Del-terror
+npm install
+cp .env.example .env
+npm run build
+npm start
+```
+
+---
+
+## Ejemplo con systemd
+
+Crear archivo de servicio:
+
+```bash
+sudo nano /etc/systemd/system/ppt-terror.service
+```
+
+Contenido recomendado:
+
+```ini
+[Unit]
+Description=PPT del Terror
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/PPT-Del-terror
+EnvironmentFile=/opt/PPT-Del-terror/.env
+ExecStart=/usr/bin/npm start
+Restart=always
+RestartSec=5
+User=www-data
+Group=www-data
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Activar el servicio:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable ppt-terror
+sudo systemctl start ppt-terror
+```
+
+Ver estado:
+
+```bash
+systemctl status ppt-terror
+```
+
+Ver logs:
+
+```bash
+journalctl -u ppt-terror -f
+```
+
+---
+
+## Reverse Proxy
+
+El proyecto incluye un archivo `nginx.conf` para servir el frontend como aplicación estática.
+
+Para producción completa con API, se recomienda ejecutar `server.js` detrás de un reverse proxy, ya que Express sirve tanto el frontend compilado como las rutas `/api`.
+
+Ejemplo conceptual:
+
+```text
+Cliente
+  -> Dominio público
+  -> Reverse proxy
+  -> Node.js Express en puerto 1311
+  -> PostgreSQL
+```
+
+---
+
+## Cloudflare Tunnel
+
+Este proyecto puede publicarse mediante Cloudflare Tunnel apuntando al puerto interno del servidor.
+
+Ejemplo de origen:
+
+```text
+http://localhost:1311
+```
+
+Ejemplo de dominio:
+
+```text
+terror.iclexi.tech
+```
+
+En ese caso, la variable `ALLOWED_HOSTS` debe incluir el dominio público:
+
+```env
+ALLOWED_HOSTS=terror.iclexi.tech,localhost,127.0.0.1
+```
+
+---
+
+## Recomendaciones de Producción
+
+- Usar `COOKIE_SECURE=true`.
+- Generar un `SESSION_SECRET` largo y aleatorio.
+- No reutilizar contraseñas de base de datos.
+- Usar un usuario PostgreSQL dedicado.
+- Ejecutar la app detrás de HTTPS.
+- Mantener `ALLOWED_HOSTS` limitado.
+- No exponer PostgreSQL directamente a internet.
+- Ejecutar la app como usuario sin privilegios.
+- Mantener Node.js y dependencias actualizadas.
+- Revisar logs periódicamente.
+- Proteger el panel admin.
+
+---
+
+## Comandos Útiles
+
+Verificar TypeScript:
+
+```bash
+npm run check
+```
+
+Compilar:
+
+```bash
+npm run build
+```
+
+Ejecutar:
+
+```bash
+npm start
+```
+
+Probar health check:
+
+```bash
+curl http://localhost:1311/healthz
+```
+
+Revisar puerto activo:
+
+```bash
+ss -tulpn | grep 1311
+```
+
+Probar API de sesión:
+
+```bash
+curl -i http://localhost:1311/api/session
+```
+
+---
+
+## Estado del Proyecto
+
+El proyecto se encuentra funcional y en evolución.
+
+Actualmente incluye juego, autenticación, rankings, dashboard, panel administrativo, base de datos y controles básicos de seguridad.
+
+---
+
+## Autor
+
+**Michael David Robles Fermin**  
+**iClexi**
+
+Proyecto desarrollado como parte de mi portafolio técnico, combinando desarrollo web, backend, base de datos, seguridad y despliegue real.
+
+---
+
+<div align="center">
+
+PPT del Terror  
+Un juego web con presión académica, ranking competitivo y backend real.
+
+</div>
