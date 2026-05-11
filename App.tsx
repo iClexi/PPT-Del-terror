@@ -152,7 +152,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-retro-bg flex flex-col">
+    <div className="h-screen bg-retro-bg flex flex-col">
       <nav className="px-3 py-3 sm:p-4 bg-slate-900 border-b border-slate-700 flex justify-between items-center z-50 gap-3">
         <div className="font-arcade text-retro-accent text-base sm:text-lg flex items-center gap-2">
           <img
