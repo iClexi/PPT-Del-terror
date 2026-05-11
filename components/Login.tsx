@@ -4,14 +4,17 @@ import { Button } from './Button';
 
 interface LoginProps {
   onLoginSuccess: (playerName: string, isAdmin: boolean) => void;
+  onShowTerms?: () => void;
+  onShowPrivacy?: () => void;
 }
 
 type AuthMode = 'login' | 'register';
 
-export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
+export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onShowTerms, onShowPrivacy }) => {
   const [mode, setMode] = useState<AuthMode>('login');
   const [nameInput, setNameInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
+  const [acceptTerms, setAcceptTerms] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -25,6 +28,12 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (isRegister && !acceptTerms) {
+      setError('Debes aceptar los Términos y Condiciones para registrarte.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -35,6 +44,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         body: JSON.stringify({
           name: nameInput,
           password: passwordInput,
+          ...(isRegister ? { acceptTerms: true } : {}),
         }),
       });
 
@@ -125,19 +135,51 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             />
           </div>
 
+          {isRegister && (
+            <label className="flex items-start gap-2 text-[11px] sm:text-xs text-slate-300 leading-snug">
+              <input
+                type="checkbox"
+                checked={acceptTerms}
+                onChange={(e) => setAcceptTerms(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-green-500"
+              />
+              <span>
+                Acepto los{' '}
+                <button type="button" onClick={onShowTerms} className="text-retro-accent underline hover:text-white">
+                  Términos y Condiciones
+                </button>{' '}
+                y la{' '}
+                <button type="button" onClick={onShowPrivacy} className="text-retro-accent underline hover:text-white">
+                  Política de Privacidad
+                </button>
+                .
+              </span>
+            </label>
+          )}
+
           {error && (
             <div className="bg-red-900/50 border border-red-500 text-red-200 text-xs p-3 rounded animate-pulse">
               {error}
             </div>
           )}
 
-          <Button type="submit" className="w-full mt-4 disabled:opacity-60 px-3 text-[11px] sm:text-sm" disabled={isSubmitting}>
+          <Button type="submit" className="w-full mt-4 disabled:opacity-60 px-3 text-[11px] sm:text-sm" disabled={isSubmitting || (isRegister && !acceptTerms)}>
             <span className="inline-flex min-w-0 items-center justify-center gap-2">
               {isRegister ? <UserPlus size={18} /> : <LogIn size={18} />}
               <span className="truncate">{isSubmitting ? 'Procesando...' : isRegister ? 'Crear cuenta' : 'Iniciar sesión'}</span>
             </span>
           </Button>
         </form>
+
+        <div className="mt-6 pt-4 border-t border-slate-800 text-center text-[10px] text-slate-500 flex flex-wrap justify-center gap-3">
+          <button type="button" onClick={onShowTerms} className="hover:text-retro-accent">
+            Términos
+          </button>
+          <span>·</span>
+          <button type="button" onClick={onShowPrivacy} className="hover:text-retro-accent">
+            Privacidad
+          </button>
+        </div>
       </div>
     </div>
   );

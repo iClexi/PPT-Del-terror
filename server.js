@@ -436,6 +436,9 @@ app.get('/api/session', (req, res) => {
 app.post('/api/register', asyncHandler(async (req, res) => {
   let playerName;
   let password;
+  if (req.body?.acceptTerms !== true) {
+    return res.status(400).json({ error: 'Debes aceptar los Términos y Condiciones.' });
+  }
   try {
     playerName = normalizePlayerName(req.body?.name);
     password = normalizePassword(req.body?.password);
@@ -616,6 +619,52 @@ app.get('/api/admin/users/:id/inputs', requireAdmin, asyncHandler(async (req, re
   );
   return res.json({ events: mapTrafficRows(rows.rows) });
 }));
+
+const SITE_URL = process.env.SITE_URL ?? 'https://terror.iclexi.tech';
+
+app.get('/robots.txt', (_req, res) => {
+  res.type('text/plain').send(
+    [
+      'User-agent: *',
+      'Allow: /',
+      'Allow: /terminos',
+      'Allow: /privacidad',
+      'Disallow: /api/',
+      `Sitemap: ${SITE_URL}/sitemap.xml`,
+      `Host: ${SITE_URL}`,
+      '',
+    ].join('\n'),
+  );
+});
+
+app.get('/sitemap.xml', (_req, res) => {
+  const today = new Date().toISOString().slice(0, 10);
+  const urls = ['/', '/terminos', '/privacidad'];
+  const body =
+    '<?xml version="1.0" encoding="UTF-8"?>\n' +
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+    urls
+      .map(
+        (u) =>
+          `  <url><loc>${SITE_URL}${u}</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq></url>\n`,
+      )
+      .join('') +
+    '</urlset>\n';
+  res.type('application/xml').send(body);
+});
+
+app.get('/.well-known/security.txt', (_req, res) => {
+  res.type('text/plain').send(
+    [
+      'Contact: mailto:security@iclexi.tech',
+      'Expires: 2027-05-10T00:00:00.000Z',
+      'Preferred-Languages: es, en',
+      `Canonical: ${SITE_URL}/.well-known/security.txt`,
+      `Policy: ${SITE_URL}/terminos`,
+      '',
+    ].join('\n'),
+  );
+});
 
 const distDirectory = path.join(__dirname, 'dist');
 app.use(

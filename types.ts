@@ -4,7 +4,9 @@ export enum ScreenState {
   ADMIN = 'ADMIN',
   PLAYING = 'PLAYING',
   GAME_OVER = 'GAME_OVER',
-  VICTORY = 'VICTORY'
+  VICTORY = 'VICTORY',
+  TERMS = 'TERMS',
+  PRIVACY = 'PRIVACY'
 }
 
 export interface GameStats {

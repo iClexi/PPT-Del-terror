@@ -4,9 +4,49 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Misión: PPT del Terror</title>
-    <meta name="description" content="Juego PPT del Terror con dashboard de rankings." />
+    <meta name="description" content="Juego web PPT del Terror con leaderboard, autenticación y panel admin. Educativo y recreativo." />
+    <link rel="canonical" href="https://terror.iclexi.tech/" />
+    <link rel="terms-of-service" href="/terminos" />
+    <link rel="privacy-policy" href="/privacidad" />
+    <link rel="license" href="/terminos" />
+    <meta name="terms-of-service" content="https://terror.iclexi.tech/terminos" />
+    <meta name="privacy-policy" content="https://terror.iclexi.tech/privacidad" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="PPT del Terror" />
+    <meta property="og:title" content="PPT del Terror" />
+    <meta property="og:description" content="Sube el PPT antes de las 3:59 PM. Leaderboard y rankings." />
+    <meta property="og:url" content="https://terror.iclexi.tech/" />
+    <meta property="og:locale" content="es_DO" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="PPT del Terror" />
+    <meta name="twitter:description" content="Juego web educativo con autenticación, leaderboard y panel admin." />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "PPT del Terror",
+        "url": "https://terror.iclexi.tech/",
+        "applicationCategory": "GameApplication",
+        "operatingSystem": "Web",
+        "inLanguage": "es",
+        "termsOfService": "https://terror.iclexi.tech/terminos",
+        "privacyPolicy": "https://terror.iclexi.tech/privacidad"
+      }
+    </script>
+
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto:wght@400;700&display=swap');
+
+      @media print {
+        body { background: #fff !important; color: #111 !important; height: auto !important; overflow: visible !important; }
+        nav, header, footer, .print\:hidden, [aria-hidden="true"] { display: none !important; }
+        main, main * { background: transparent !important; color: #111 !important; box-shadow: none !important; border-color: #d1d5db !important; }
+        a { color: #111 !important; text-decoration: underline !important; }
+        section { page-break-inside: avoid; }
+        h1, h2, h3 { page-break-after: avoid; }
+      }
     </style>
   </head>
   <body class="bg-retro-bg text-retro-text h-screen overflow-hidden">

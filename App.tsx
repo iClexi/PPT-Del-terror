@@ -1,14 +1,26 @@
 import React, { useEffect, useState } from 'react';
-import { LayoutDashboard, LogOut, RotateCcw, ShieldCheck, Trophy } from 'lucide-react';
+import { FileText, LayoutDashboard, Lock, LogOut, RotateCcw, ShieldCheck, Trophy } from 'lucide-react';
 import { Login } from './components/Login';
 import { Game } from './components/Game';
 import { Button } from './components/Button';
 import { Dashboard } from './components/Dashboard';
 import { AdminPanel } from './components/AdminPanel';
+import { Terms } from './components/Terms';
+import { Privacy } from './components/Privacy';
 import { ScreenState } from './types';
 
+const screenFromPath = (): ScreenState | null => {
+  if (typeof window === 'undefined') return null;
+  const p = window.location.pathname;
+  if (p.startsWith('/terminos')) return ScreenState.TERMS;
+  if (p.startsWith('/privacidad')) return ScreenState.PRIVACY;
+  return null;
+};
+
 function App() {
-  const [screen, setScreen] = useState<ScreenState>(ScreenState.LOGIN);
+  const initialFromUrl = screenFromPath();
+  const [screen, setScreen] = useState<ScreenState>(initialFromUrl ?? ScreenState.LOGIN);
+  const [returnScreen, setReturnScreen] = useState<ScreenState>(ScreenState.LOGIN);
   const [finalScore, setFinalScore] = useState(0);
   const [playerName, setPlayerName] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
@@ -24,10 +36,11 @@ function App() {
         if (response.ok && payload.authenticated && payload.playerName) {
           setPlayerName(payload.playerName);
           setIsAdmin(Boolean(payload.isAdmin));
-          setScreen(ScreenState.DASHBOARD);
+          setReturnScreen(ScreenState.DASHBOARD);
+          if (screenFromPath() === null) setScreen(ScreenState.DASHBOARD);
         }
       } catch {
-        setScreen(ScreenState.LOGIN);
+        if (screenFromPath() === null) setScreen(ScreenState.LOGIN);
       } finally {
         setIsCheckingSession(false);
       }
@@ -36,9 +49,30 @@ function App() {
     void checkSession();
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const target =
+      screen === ScreenState.TERMS ? '/terminos' :
+      screen === ScreenState.PRIVACY ? '/privacidad' : '/';
+    if (window.location.pathname !== target) {
+      try { window.history.replaceState({}, '', target); } catch {}
+    }
+  }, [screen]);
+
+  const showTerms = () => {
+    if (screen !== ScreenState.TERMS && screen !== ScreenState.PRIVACY) setReturnScreen(screen);
+    setScreen(ScreenState.TERMS);
+  };
+  const showPrivacy = () => {
+    if (screen !== ScreenState.TERMS && screen !== ScreenState.PRIVACY) setReturnScreen(screen);
+    setScreen(ScreenState.PRIVACY);
+  };
+  const backFromLegal = () => setScreen(returnScreen);
+
   const handleLoginSuccess = (name: string, admin: boolean) => {
     setPlayerName(name);
     setIsAdmin(admin);
+    setReturnScreen(ScreenState.DASHBOARD);
     setScreen(ScreenState.DASHBOARD);
   };
 
@@ -107,7 +141,7 @@ function App() {
         </div>
         {screen !== ScreenState.LOGIN && !isCheckingSession && (
           <div className="flex flex-wrap justify-end items-center gap-3">
-            {screen !== ScreenState.DASHBOARD && (
+            {screen !== ScreenState.DASHBOARD && screen !== ScreenState.TERMS && screen !== ScreenState.PRIVACY && (
               <button
                 onClick={showDashboard}
                 className="text-xs text-gray-400 hover:text-white font-sans inline-flex items-center gap-1"
@@ -125,8 +159,22 @@ function App() {
                 Admin
               </button>
             )}
-            <button 
-              onClick={logout} 
+            <button
+              onClick={showTerms}
+              className="text-xs text-gray-400 hover:text-white font-sans inline-flex items-center gap-1"
+            >
+              <FileText size={14} />
+              Términos
+            </button>
+            <button
+              onClick={showPrivacy}
+              className="text-xs text-gray-400 hover:text-white font-sans inline-flex items-center gap-1"
+            >
+              <Lock size={14} />
+              Privacidad
+            </button>
+            <button
+              onClick={logout}
               className="text-xs text-gray-400 hover:text-white font-sans inline-flex items-center gap-1"
             >
               <LogOut size={14} />
@@ -136,13 +184,25 @@ function App() {
         )}
       </nav>
 
-      <main className="flex-grow relative overflow-hidden flex items-center justify-center min-h-0">
+      <main className={`flex-grow relative min-h-0 ${
+        screen === ScreenState.TERMS || screen === ScreenState.PRIVACY
+          ? 'overflow-y-auto block'
+          : 'overflow-hidden flex items-center justify-center'
+      }`}>
         {isCheckingSession && (
           <div className="font-arcade text-retro-accent animate-pulse">Cargando...</div>
         )}
         
         {!isCheckingSession && screen === ScreenState.LOGIN && (
-          <Login onLoginSuccess={handleLoginSuccess} />
+          <Login onLoginSuccess={handleLoginSuccess} onShowTerms={showTerms} onShowPrivacy={showPrivacy} />
+        )}
+
+        {screen === ScreenState.TERMS && (
+          <Terms onBack={backFromLegal} onPrivacy={showPrivacy} />
+        )}
+
+        {screen === ScreenState.PRIVACY && (
+          <Privacy onBack={backFromLegal} onTerms={showTerms} />
         )}
 
         {!isCheckingSession && screen === ScreenState.DASHBOARD && (
