@@ -151,7 +151,7 @@ const SECTIONS: Array<{ id: string; title: string; body: React.ReactNode }> = [
 
 export const Privacy: React.FC<PrivacyProps> = ({ onBack, onTerms }) => {
   return (
-    <div className="min-h-full w-full overflow-y-auto bg-slate-950 text-slate-200 py-6 px-3 sm:px-6">
+    <div className="min-h-full w-full bg-slate-950 text-slate-200 py-6 px-3 sm:px-6">
       <a href="#main-privacy" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:bg-retro-accent focus:text-black focus:px-3 focus:py-2 focus:rounded">
         Saltar al contenido
       </a>
