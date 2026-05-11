@@ -293,15 +293,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onPlay, onDashboard }) =
                   maxLength={40}
                 />
               </div>
-              <label className="flex items-center gap-3 text-sm text-slate-200">
-                <input
-                  type="checkbox"
-                  checked={editing.isAdmin}
-                  onChange={(ev) => setEditing({ ...editing, isAdmin: ev.target.checked })}
-                  className="h-4 w-4 accent-purple-500"
-                />
-                <span>Rol administrador</span>
-              </label>
+              <div>
+                <label className="mb-1 block text-xs font-arcade text-retro-accent">Rol</label>
+                <div className="grid grid-cols-2 gap-2 rounded border-2 border-slate-700 bg-slate-900 p-1">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={!editing.isAdmin}
+                    onClick={() => setEditing({ ...editing, isAdmin: false })}
+                    className={`rounded px-3 py-2 font-arcade text-xs transition ${
+                      !editing.isAdmin
+                        ? 'bg-slate-700 text-white shadow-inner'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    User
+                  </button>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={editing.isAdmin}
+                    onClick={() => setEditing({ ...editing, isAdmin: true })}
+                    className={`rounded px-3 py-2 font-arcade text-xs transition ${
+                      editing.isAdmin
+                        ? 'bg-purple-600 text-white shadow-[0_0_0_2px_rgba(192,132,252,0.55)]'
+                        : 'text-purple-300 hover:text-purple-200'
+                    }`}
+                  >
+                    Admin
+                  </button>
+                </div>
+              </div>
               <div>
                 <label className="mb-1 block text-xs font-arcade text-retro-accent">Nueva contraseña (opcional)</label>
                 <input
