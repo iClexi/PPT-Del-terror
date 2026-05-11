@@ -721,6 +721,24 @@ app.get('/sitemap.xml', (_req, res) => {
   res.type('application/xml').send(body);
 });
 
+app.get('/manifest.webmanifest', (_req, res) => {
+  res.type('application/manifest+json').send(JSON.stringify({
+    name: 'PPT del Terror',
+    short_name: 'PPT Attack',
+    description: 'Juego web PPT del Terror con leaderboard y rankings.',
+    start_url: '/',
+    scope: '/',
+    display: 'standalone',
+    background_color: '#1a1a2e',
+    theme_color: '#1a1a2e',
+    lang: 'es',
+    orientation: 'portrait-primary',
+    icons: [
+      { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' },
+    ],
+  }));
+});
+
 app.get('/.well-known/security.txt', (_req, res) => {
   res.type('text/plain').send(
     [

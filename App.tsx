@@ -153,6 +153,12 @@ function App() {
 
   return (
     <div className="h-screen bg-retro-bg flex flex-col">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded focus:bg-retro-accent focus:px-3 focus:py-2 focus:text-black focus:font-arcade"
+      >
+        Saltar al contenido
+      </a>
       <nav className="px-3 py-3 sm:p-4 bg-slate-900 border-b border-slate-700 flex justify-between items-center z-50 gap-3">
         <div className="font-arcade text-retro-accent text-base sm:text-lg flex items-center gap-2">
           <img
@@ -209,7 +215,7 @@ function App() {
         )}
       </nav>
 
-      <main className={`flex-grow relative min-h-0 ${
+      <main id="main-content" tabIndex={-1} className={`flex-grow relative min-h-0 outline-none ${
         screen === ScreenState.TERMS || screen === ScreenState.PRIVACY
           ? 'overflow-y-auto block'
           : 'overflow-hidden flex items-center justify-center'
