@@ -121,6 +121,44 @@ const parseCookies = (header = '') =>
       }),
   );
 
+const SCORE_HARD_CAP = 8000;
+const SCORE_PER_SECOND_CAP = 80;
+const MIN_RUN_MS = 4_000;
+const MAX_RUN_MS = 20 * 60 * 1000;
+const RUN_TOKEN_TTL_MS = MAX_RUN_MS + 5 * 60 * 1000;
+const usedRunTokens = new Map();
+
+const cleanupUsedRunTokens = () => {
+  const now = Date.now();
+  for (const [nonce, expiresAt] of usedRunTokens) {
+    if (expiresAt < now) usedRunTokens.delete(nonce);
+  }
+};
+
+const createRunToken = (playerId) => {
+  const startedAt = Date.now();
+  const nonce = crypto.randomBytes(12).toString('base64url');
+  const payload = `${playerId}|${startedAt}|${nonce}`;
+  const sig = signValue(payload);
+  return { token: `${base64UrlEncode(payload)}.${sig}`, startedAt };
+};
+
+const verifyRunToken = (token, expectedPlayerId) => {
+  if (typeof token !== 'string' || token.length < 16 || !token.includes('.')) return null;
+  const [payloadB64, sig] = token.split('.');
+  if (!payloadB64 || !sig) return null;
+  let payload;
+  try { payload = base64UrlDecode(payloadB64); } catch { return null; }
+  const expectedSig = signValue(payload);
+  if (!timingSafeEqual(sig, expectedSig)) return null;
+  const [playerIdStr, startedAtStr, nonce] = payload.split('|');
+  const playerId = Number(playerIdStr);
+  const startedAt = Number(startedAtStr);
+  if (!Number.isFinite(playerId) || !Number.isFinite(startedAt) || !nonce) return null;
+  if (playerId !== expectedPlayerId) return null;
+  return { playerId, startedAt, nonce };
+};
+
 const dummyPasswordHash = '$2a$12$CwhDRHGO7lAupjd3EtwtxePFqgFKb5EKnBPBmhLXeRry0KyUilgnq';
 
 const createSessionToken = ({ playerId, playerName, isAdmin = false }) => {
@@ -496,13 +534,43 @@ app.post('/api/logout', (_req, res) => {
   res.json({ ok: true });
 });
 
+app.post('/api/game/start', requireSession, asyncHandler(async (req, res) => {
+  const { token, startedAt } = createRunToken(req.session.playerId);
+  return res.json({ runToken: token, startedAt });
+}));
+
 app.post('/api/scores', requireSession, asyncHandler(async (req, res) => {
   const score = Number(req.body?.score);
   const won = Boolean(req.body?.won);
 
-  if (!Number.isInteger(score) || score < 0 || score > 100000) {
+  if (!Number.isInteger(score) || score < 0 || score > SCORE_HARD_CAP) {
     return res.status(400).json({ error: 'Puntaje inválido.' });
   }
+
+  const verified = verifyRunToken(req.body?.runToken, req.session.playerId);
+  if (!verified) {
+    return res.status(400).json({ error: 'Run token inválido. Inicia una partida nueva.' });
+  }
+
+  cleanupUsedRunTokens();
+  if (usedRunTokens.has(verified.nonce)) {
+    return res.status(409).json({ error: 'Esta partida ya fue registrada.' });
+  }
+
+  const elapsedMs = Date.now() - verified.startedAt;
+  if (elapsedMs < MIN_RUN_MS) {
+    return res.status(400).json({ error: 'Partida demasiado corta.' });
+  }
+  if (elapsedMs > MAX_RUN_MS) {
+    return res.status(400).json({ error: 'Run token expirado. Inicia una partida nueva.' });
+  }
+
+  const maxAllowedScore = Math.ceil((elapsedMs / 1000) * SCORE_PER_SECOND_CAP);
+  if (score > maxAllowedScore) {
+    return res.status(400).json({ error: 'Puntaje inconsistente con la duración.' });
+  }
+
+  usedRunTokens.set(verified.nonce, Date.now() + RUN_TOKEN_TTL_MS);
 
   await pool.query(
     'INSERT INTO ppt_scores (player_id, player_name, score, won, request_ip) VALUES ($1, $2, $3, $4, $5::inet)',

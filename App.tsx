@@ -27,6 +27,7 @@ function App() {
   const [personalBest, setPersonalBest] = useState(0);
   const [newRecordScore, setNewRecordScore] = useState<number | null>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [runToken, setRunToken] = useState<string | null>(null);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -79,28 +80,45 @@ function App() {
   const handleGameOver = async (won: boolean, score: number) => {
     setFinalScore(score);
 
-    try {
-      const response = await fetch('/api/scores', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ score, won }),
-      });
-      const payload = await response.json().catch(() => ({}));
-      if (response.ok && payload.isPersonalBest && score > personalBest) {
-        setNewRecordScore(score);
+    if (runToken) {
+      try {
+        const response = await fetch('/api/scores', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ score, won, runToken }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (response.ok && payload.isPersonalBest && score > personalBest) {
+          setNewRecordScore(score);
+        }
+        if (response.ok && Number.isFinite(Number(payload.bestScore))) {
+          setPersonalBest(Number(payload.bestScore));
+        }
+      } catch {
+        // The game result still renders even if the network is unavailable.
       }
-      if (response.ok && Number.isFinite(Number(payload.bestScore))) {
-        setPersonalBest(Number(payload.bestScore));
-      }
-    } catch {
-      // The game result still renders even if the network is unavailable.
     }
 
+    setRunToken(null);
     setScreen(won ? ScreenState.VICTORY : ScreenState.GAME_OVER);
   };
 
-  const resetGame = () => {
+  const resetGame = async () => {
+    try {
+      const response = await fetch('/api/game/start', {
+        method: 'POST',
+        credentials: 'same-origin',
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (response.ok && typeof payload.runToken === 'string') {
+        setRunToken(payload.runToken);
+      } else {
+        setRunToken(null);
+      }
+    } catch {
+      setRunToken(null);
+    }
     setScreen(ScreenState.PLAYING);
   };
 
