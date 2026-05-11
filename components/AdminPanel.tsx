@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Activity, Eye, RefreshCw, ShieldCheck, Users } from 'lucide-react';
+import { Activity, Eye, RefreshCw, ShieldCheck, Trash2, UserCog, Users } from 'lucide-react';
 import { AdminUser, TrafficEvent } from '../types';
 import { Button } from './Button';
 
@@ -19,6 +19,15 @@ const formatDate = (value?: string | null) => {
 const compactBrowser = (event: TrafficEvent) =>
   [event.platform, event.browserLanguage, event.viewport, event.browserTimezone].filter(Boolean).join(' · ') || 'Sin datos';
 
+interface EditForm {
+  user: AdminUser;
+  playerName: string;
+  isAdmin: boolean;
+  password: string;
+  saving: boolean;
+  formError: string;
+}
+
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onPlay, onDashboard }) => {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [traffic, setTraffic] = useState<TrafficEvent[]>([]);
@@ -26,6 +35,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onPlay, onDashboard }) =
   const [selectedInputs, setSelectedInputs] = useState<TrafficEvent[]>([]);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [editing, setEditing] = useState<EditForm | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const loadAdminData = useCallback(async () => {
     setError('');
@@ -60,6 +71,66 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onPlay, onDashboard }) =
       setSelectedInputs(payload.events ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error cargando inputs del usuario.');
+    }
+  };
+
+  const openEdit = (user: AdminUser) => {
+    setEditing({
+      user,
+      playerName: user.playerName,
+      isAdmin: user.isAdmin,
+      password: '',
+      saving: false,
+      formError: '',
+    });
+  };
+
+  const submitEdit = async () => {
+    if (!editing) return;
+    setEditing({ ...editing, saving: true, formError: '' });
+    try {
+      const body: Record<string, unknown> = {};
+      if (editing.playerName.trim() !== editing.user.playerName) body.playerName = editing.playerName.trim();
+      if (editing.isAdmin !== editing.user.isAdmin) body.isAdmin = editing.isAdmin;
+      if (editing.password.trim().length > 0) body.password = editing.password;
+      if (Object.keys(body).length === 0) {
+        setEditing({ ...editing, saving: false, formError: 'No hay cambios para guardar.' });
+        return;
+      }
+      const res = await fetch(`/api/admin/users/${editing.user.id}`, {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.error ?? 'No se pudo actualizar el usuario.');
+      setEditing(null);
+      await loadAdminData();
+    } catch (err) {
+      setEditing((curr) => curr ? { ...curr, saving: false, formError: err instanceof Error ? err.message : 'Error.' } : curr);
+    }
+  };
+
+  const deleteUser = async (user: AdminUser) => {
+    if (!window.confirm(`¿Borrar a "${user.playerName}"? Su histórico de partidas y tráfico se conservará anónimo.`)) {
+      return;
+    }
+    setDeletingId(user.id);
+    setError('');
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method: 'DELETE',
+        credentials: 'same-origin',
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(payload.error ?? 'No se pudo borrar el usuario.');
+      if (selectedUser?.id === user.id) setSelectedUser(null);
+      await loadAdminData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error borrando el usuario.');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -110,26 +181,49 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onPlay, onDashboard }) =
           </div>
           <div className="grid gap-3 p-3 sm:p-4 max-h-[70vh] overflow-y-auto">
             {users.map((user) => (
-              <button
+              <div
                 key={user.id}
-                type="button"
-                onClick={() => void loadUserInputs(user)}
-                className="rounded-lg border-2 border-slate-700 bg-slate-950 p-4 text-left transition hover:border-retro-accent"
+                className="rounded-lg border-2 border-slate-700 bg-slate-950 p-4 transition hover:border-retro-accent"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate font-bold text-white">{user.playerName}</p>
-                    <p className="mt-1 text-xs text-slate-400">Login: {formatDate(user.lastLoginAt)}</p>
+                <button
+                  type="button"
+                  onClick={() => void loadUserInputs(user)}
+                  className="w-full text-left"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-bold text-white">{user.playerName}</p>
+                      <p className="mt-1 text-xs text-slate-400">Login: {formatDate(user.lastLoginAt)}</p>
+                    </div>
+                    <span className={`rounded px-2 py-1 text-[10px] font-arcade ${user.isAdmin ? 'bg-purple-500 text-white' : 'bg-slate-800 text-slate-300'}`}>
+                      {user.isAdmin ? 'Admin' : 'User'}
+                    </span>
                   </div>
-                  <span className={`rounded px-2 py-1 text-[10px] font-arcade ${user.isAdmin ? 'bg-purple-500 text-white' : 'bg-slate-800 text-slate-300'}`}>
-                    {user.isAdmin ? 'Admin' : 'User'}
-                  </span>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                    <span className="rounded bg-slate-800 px-3 py-2 text-green-300">Mejor: {user.bestScore}</span>
+                    <span className="rounded bg-slate-800 px-3 py-2 text-yellow-300">Partidas: {user.games}</span>
+                  </div>
+                </button>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openEdit(user)}
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded border-2 border-slate-700 bg-slate-900 px-3 py-2 text-xs font-bold text-slate-200 transition hover:border-retro-accent hover:text-white"
+                  >
+                    <UserCog size={14} />
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void deleteUser(user)}
+                    disabled={deletingId === user.id}
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded border-2 border-red-700 bg-red-950 px-3 py-2 text-xs font-bold text-red-200 transition hover:border-red-400 hover:text-white disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    <Trash2 size={14} />
+                    {deletingId === user.id ? 'Borrando…' : 'Borrar'}
+                  </button>
                 </div>
-                <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                  <span className="rounded bg-slate-800 px-3 py-2 text-green-300">Mejor: {user.bestScore}</span>
-                  <span className="rounded bg-slate-800 px-3 py-2 text-yellow-300">Partidas: {user.games}</span>
-                </div>
-              </button>
+              </div>
             ))}
           </div>
         </section>
@@ -167,6 +261,84 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onPlay, onDashboard }) =
           </div>
         </section>
       </div>
+
+      {editing && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 p-4" role="dialog" aria-modal="true">
+          <div className="w-full max-w-md rounded-xl border-4 border-retro-accent bg-slate-950 shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b-4 border-slate-700 p-5">
+              <div>
+                <p className="font-arcade text-xs text-retro-accent">Editar usuario</p>
+                <h3 className="mt-2 text-xl font-bold text-white">{editing.user.playerName}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditing(null)}
+                className="rounded bg-slate-800 px-3 py-1.5 text-sm font-bold text-white hover:bg-slate-700"
+              >
+                Cerrar
+              </button>
+            </div>
+            <form
+              onSubmit={(ev) => { ev.preventDefault(); void submitEdit(); }}
+              className="space-y-4 p-5"
+            >
+              <div>
+                <label className="mb-1 block text-xs font-arcade text-retro-accent">Nombre</label>
+                <input
+                  type="text"
+                  value={editing.playerName}
+                  onChange={(ev) => setEditing({ ...editing, playerName: ev.target.value })}
+                  className="w-full rounded border-2 border-slate-700 bg-slate-900 px-3 py-2 text-white outline-none focus:border-retro-accent"
+                  minLength={2}
+                  maxLength={40}
+                />
+              </div>
+              <label className="flex items-center gap-3 text-sm text-slate-200">
+                <input
+                  type="checkbox"
+                  checked={editing.isAdmin}
+                  onChange={(ev) => setEditing({ ...editing, isAdmin: ev.target.checked })}
+                  className="h-4 w-4 accent-purple-500"
+                />
+                <span>Rol administrador</span>
+              </label>
+              <div>
+                <label className="mb-1 block text-xs font-arcade text-retro-accent">Nueva contraseña (opcional)</label>
+                <input
+                  type="password"
+                  value={editing.password}
+                  onChange={(ev) => setEditing({ ...editing, password: ev.target.value })}
+                  placeholder="Dejar vacío para no cambiar"
+                  className="w-full rounded border-2 border-slate-700 bg-slate-900 px-3 py-2 text-white outline-none focus:border-retro-accent"
+                  minLength={8}
+                  maxLength={128}
+                  autoComplete="new-password"
+                />
+                <p className="mt-1 text-[11px] text-slate-500">Mínimo 8 caracteres. Sólo si quieres resetearla.</p>
+              </div>
+              {editing.formError && (
+                <p className="rounded border-2 border-red-500 bg-red-950/70 p-3 text-sm text-red-100">{editing.formError}</p>
+              )}
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditing(null)}
+                  className="flex-1 rounded border-2 border-slate-700 bg-slate-900 py-2 text-sm font-bold text-slate-200 hover:border-slate-500"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={editing.saving}
+                  className="flex-1 rounded border-2 border-retro-accent bg-purple-700 py-2 text-sm font-bold text-white hover:bg-purple-600 disabled:opacity-60"
+                >
+                  {editing.saving ? 'Guardando…' : 'Guardar'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {selectedUser && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/75 p-4" role="dialog" aria-modal="true">

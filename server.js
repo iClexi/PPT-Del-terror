@@ -688,6 +688,104 @@ app.get('/api/admin/users/:id/inputs', requireAdmin, asyncHandler(async (req, re
   return res.json({ events: mapTrafficRows(rows.rows) });
 }));
 
+app.patch('/api/admin/users/:id', requireAdmin, asyncHandler(async (req, res) => {
+  const userId = Number(req.params.id);
+  if (!Number.isInteger(userId) || userId < 1) {
+    return res.status(400).json({ error: 'Usuario inválido.' });
+  }
+
+  const body = req.body ?? {};
+  const updates = [];
+  const values = [];
+  let nextParam = 1;
+
+  if (typeof body.playerName === 'string') {
+    let nextName;
+    try {
+      nextName = normalizePlayerName(body.playerName);
+    } catch (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    const clash = await pool.query(
+      'SELECT id FROM ppt_players WHERE LOWER(player_name) = LOWER($1) AND id <> $2 LIMIT 1',
+      [nextName, userId],
+    );
+    if (clash.rowCount > 0) {
+      return res.status(409).json({ error: 'Ya existe un usuario con ese nombre.' });
+    }
+    updates.push(`player_name = $${nextParam++}`);
+    values.push(nextName);
+  }
+
+  if (typeof body.isAdmin === 'boolean') {
+    if (Number(req.session.playerId) === userId && body.isAdmin === false) {
+      return res.status(400).json({ error: 'No puedes quitarte el rol de admin a ti mismo.' });
+    }
+    updates.push(`is_admin = $${nextParam++}`);
+    values.push(body.isAdmin);
+  }
+
+  if (typeof body.password === 'string' && body.password.length > 0) {
+    let nextPassword;
+    try {
+      nextPassword = normalizePassword(body.password);
+    } catch (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    const passwordHash = await bcrypt.hash(nextPassword, 12);
+    updates.push(`password_hash = $${nextParam++}`);
+    values.push(passwordHash);
+  }
+
+  if (updates.length === 0) {
+    return res.status(400).json({ error: 'No hay cambios para aplicar.' });
+  }
+
+  values.push(userId);
+  const result = await pool.query(
+    `UPDATE ppt_players SET ${updates.join(', ')} WHERE id = $${nextParam} RETURNING id, player_name, is_admin, created_at, last_login_at`,
+    values,
+  );
+  if (result.rowCount === 0) {
+    return res.status(404).json({ error: 'Usuario no encontrado.' });
+  }
+  const row = result.rows[0];
+  return res.json({
+    user: {
+      id: Number(row.id),
+      playerName: row.player_name,
+      isAdmin: Boolean(row.is_admin),
+      createdAt: row.created_at,
+      lastLoginAt: row.last_login_at,
+    },
+  });
+}));
+
+app.delete('/api/admin/users/:id', requireAdmin, asyncHandler(async (req, res) => {
+  const userId = Number(req.params.id);
+  if (!Number.isInteger(userId) || userId < 1) {
+    return res.status(400).json({ error: 'Usuario inválido.' });
+  }
+  if (Number(req.session.playerId) === userId) {
+    return res.status(400).json({ error: 'No puedes borrar tu propia cuenta.' });
+  }
+
+  const target = await pool.query('SELECT is_admin FROM ppt_players WHERE id = $1', [userId]);
+  if (target.rowCount === 0) {
+    return res.status(404).json({ error: 'Usuario no encontrado.' });
+  }
+  if (target.rows[0].is_admin) {
+    const admins = await pool.query("SELECT COUNT(*)::int AS c FROM ppt_players WHERE is_admin = TRUE");
+    if (admins.rows[0].c <= 1) {
+      return res.status(400).json({ error: 'Es el último admin; promueve a otro antes de borrar.' });
+    }
+  }
+
+  // FKs en ppt_scores/ppt_traffic son ON DELETE SET NULL — el histórico queda con player_name.
+  await pool.query('DELETE FROM ppt_players WHERE id = $1', [userId]);
+  return res.json({ ok: true });
+}));
+
 const SITE_URL = process.env.SITE_URL ?? 'https://terror.iclexi.tech';
 
 app.get('/robots.txt', (_req, res) => {
