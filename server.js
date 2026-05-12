@@ -56,7 +56,7 @@ app.use(
       directives: {
         defaultSrc: ["'self'"],
         baseUri: ["'self'"],
-        connectSrc: ["'self'"],
+        connectSrc: ["'self'", 'https://*.ingest.us.sentry.io', 'https://*.ingest.sentry.io'],
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
         formAction: ["'self'"],
         frameAncestors: ["'none'"],
