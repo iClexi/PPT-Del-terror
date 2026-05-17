@@ -27,7 +27,7 @@ const adminPlayerNames = new Set(
     .filter(Boolean),
 );
 const allowedHosts = new Set(
-  (process.env.ALLOWED_HOSTS ?? 'terror.iclexi.tech,localhost,127.0.0.1,192.168.200.21,192.168.200.22,192.168.200.30')
+  (process.env.ALLOWED_HOSTS ?? 'terror.example.com,localhost,127.0.0.1')
     .split(',')
     .map((host) => host.trim().toLowerCase())
     .filter(Boolean),
